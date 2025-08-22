@@ -1264,11 +1264,11 @@
 
             initializeScene() {
                 this.scene = new THREE.Scene();
-                this.scene.background = ULTRA_CONFIG.ENVIRONMENTS.showroom.background;
+                this.scene.background = ULTRA_CONFIG.ENVIRONMENTS.studio.background;
                 this.scene.fog = new THREE.Fog(
-                    ULTRA_CONFIG.ENVIRONMENTS.showroom.fog.color,
-                    ULTRA_CONFIG.ENVIRONMENTS.showroom.fog.near,
-                    ULTRA_CONFIG.ENVIRONMENTS.showroom.fog.far
+                    ULTRA_CONFIG.ENVIRONMENTS.studio.fog.color,
+                    ULTRA_CONFIG.ENVIRONMENTS.studio.fog.near,
+                    ULTRA_CONFIG.ENVIRONMENTS.studio.fog.far
                 );
             }
 
