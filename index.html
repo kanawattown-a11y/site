@@ -1009,7 +1009,7 @@
     let gameState = {
       isPlaying: false,
       canJump: false,
-      currentEnvironment: 'showroom',
+      currentEnvironment: 'studio',
       playerPosition: new THREE.Vector3(0, CONFIG.EYE_HEIGHT, 5),
       settings: {
         mouseSensitivity: CONFIG.MOUSE_SENSITIVITY,
@@ -1238,7 +1238,7 @@
       addEnvironmentGeometry();
       
       // Set initial environment
-      changeEnvironment('showroom');
+      changeEnvironment('studio');
     }
 
     function addAtmosphericElements() {
