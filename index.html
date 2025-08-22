@@ -4,10 +4,6 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>معرض ثلاثي الأبعاد — نمط ميتافيرس (Three.js)</title>
-  <!-- Three.js & helpers from official CDN -->
-  <script src="https://unpkg.com/three@0.160.0/build/three.min.js"></script>
-  <script src="https://unpkg.com/three@0.160.0/examples/js/controls/PointerLockControls.js"></script>
-  <script src="https://unpkg.com/three@0.160.0/examples/js/loaders/GLTFLoader.js"></script>
   <style>
     html, body { height: 100%; margin: 0; background: #0b0f14; font-family: system-ui, -apple-system, Segoe UI, Roboto, "Cairo", sans-serif; }
     #app { position: fixed; inset: 0; }
@@ -36,7 +32,7 @@
     <div class="center" id="center">
       <div class="card">
         <h1 class="title">ادخل إلى المعرض الافتراضي</h1>
-        <p class="muted">هذا نموذج جاهز لتحويل <b>نموذج 3D (GLB/GLTF)</b> إلى تجربة تصفح على الويب بأسلوب <b>ميتافيرس</b> (First‑Person). استبدل رابط النموذج في الكود وسيصبح عالمك جاهزًا.
+        <p class="muted">هذا نموذج جاهز لتحويل <b>نموذج 3D (GLB/GLTF)</b> إلى تجربة تصفح على الويب بأسلوب <b>ميتافيرس</b> (First-Person). استبدل رابط النموذج في الكود وسيصبح عالمك جاهزًا.
         </p>
         <ol class="muted" style="padding-right:18px">
           <li>ارفع ملفك GLB إلى نفس المجلد أو استخدم رابطًا مباشرًا.</li>
@@ -50,21 +46,19 @@
     <div class="credits">Three.js • قالب ميتافيرس بسيط</div>
   </div>
 
-  <script>
+  <script type="module">
+    import * as THREE from "https://unpkg.com/three@0.160.0/build/three.module.js";
+    import { GLTFLoader } from "https://unpkg.com/three@0.160.0/examples/jsm/loaders/GLTFLoader.js";
+    import { PointerLockControls } from "https://unpkg.com/three@0.160.0/examples/jsm/controls/PointerLockControls.js";
+
     // === إعدادات قابلة للتعديل ===
-    // ضع هنا مسار نموذجك (GLB/GLTF). مثال: 'scene.glb' أو رابط مباشر
-    const MODEL_URL = 'https://github.com/kanawattown-a11y/12/blob/f91219369eb76bb2e445f95abaa61860e3b886dd/naj-v1.glb';
+    const MODEL_URL = 'https://raw.githubusercontent.com/kanawattown-a11y/12/f91219369eb76bb2e445f95abaa61860e3b886dd/naj-v1.glb';
 
-    // سرعة الحركة والركض والقفز والجاذبية
-    const MOVE_SPEED = 6.0;       // متر/ثانية
-    const RUN_MULT = 1.7;         // مضاعف الركض
-    const JUMP_FORCE = 8.5;       // قوة القفز
-    const GRAVITY = 22.0;         // جاذبية للأسفل
-
-    // ارتفاع عين اللاعب عن الأرض (مهم لمطابقة ارتفاع الغرف)
-    const EYE_HEIGHT = 1.75;      // بالمتر
-
-    // كتم الظلال لإطارات webgl الضعيفة
+    const MOVE_SPEED = 6.0;
+    const RUN_MULT = 1.7;
+    const JUMP_FORCE = 8.5;
+    const GRAVITY = 22.0;
+    const EYE_HEIGHT = 1.75;
     const ENABLE_SHADOWS = true;
 
     // === أسس Three.js ===
@@ -72,16 +66,15 @@
     const renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: 'high-performance' });
     renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
     renderer.setSize(innerWidth, innerHeight);
-    renderer.outputEncoding = THREE.sRGBEncoding;
+    renderer.outputColorSpace = THREE.SRGBColorSpace;
     if (ENABLE_SHADOWS) renderer.shadowMap.enabled = true;
     app.appendChild(renderer.domElement);
 
     const scene = new THREE.Scene();
     scene.background = new THREE.Color(0x0b0f14);
-
     const camera = new THREE.PerspectiveCamera(70, innerWidth / innerHeight, 0.1, 1000);
 
-    // إضاءة أساسية لطيفة
+    // إضاءة
     const hemi = new THREE.HemisphereLight(0xffffff, 0x202028, 0.8);
     scene.add(hemi);
     const dir = new THREE.DirectionalLight(0xffffff, 0.8);
@@ -90,7 +83,7 @@
     dir.shadow.mapSize.set(2048, 2048);
     scene.add(dir);
 
-    // أرضية افتراضية خفيفة (في حال نموذجك بلا أرضية)
+    // أرضية افتراضية
     const floorGeo = new THREE.PlaneGeometry(2000, 2000);
     const floorMat = new THREE.MeshStandardMaterial({ color: 0x0f141b, roughness: 1 });
     const floor = new THREE.Mesh(floorGeo, floorMat);
@@ -99,8 +92,8 @@
     floor.name = 'auto-floor';
     scene.add(floor);
 
-    // تحميل نموذج GLB/GLTF
-    const loader = new THREE.GLTFLoader();
+    // تحميل النموذج
+    const loader = new GLTFLoader();
     loader.load(MODEL_URL, (gltf) => {
       const root = gltf.scene;
       root.traverse((o) => {
@@ -111,23 +104,17 @@
         }
       });
       scene.add(root);
-    }, (xhr) => {
-      // progress (اختياري)
-      // console.log((xhr.loaded / xhr.total * 100).toFixed(0) + '%');
-    }, (err) => {
+    }, undefined, (err) => {
       console.error('فشل تحميل النموذج:', err);
-      alert('تعذر تحميل النموذج. تأكد من مسار MODEL_URL أو شغّل خادم محلي لخدمة الملفات.');
+      alert('تعذر تحميل النموذج. تأكد من مسار MODEL_URL أو شغّل خادم محلي.');
     });
 
-    // عناصر التحكم (Pointer Lock)
-    const controls = new THREE.PointerLockControls(camera, renderer.domElement);
+    // Pointer Lock
+    const controls = new PointerLockControls(camera, renderer.domElement);
     scene.add(controls.getObject());
-
-    // موضع ابتدائي للكاميرا
     camera.position.set(0, EYE_HEIGHT, 4);
 
-    // حركة اللاعب
-    const keys = { forward:false, back:false, left:false, right:false, run:false, jump:false };
+    const keys = { forward:false, back:false, left:false, right:false, run:false };
     const velocity = new THREE.Vector3();
     let canJump = false;
 
@@ -144,22 +131,19 @@
     addEventListener('keydown', e => onKey(e, true));
     addEventListener('keyup',   e => onKey(e, false));
 
-    // راي باتجاه الأسفل لكشف الأرض/الاصطدام البسيط
     const downRay = new THREE.Raycaster();
     const DOWN = new THREE.Vector3(0, -1, 0);
 
-    // دالة حركة بإطار زمني
     let last = performance.now();
     function animate(){
       requestAnimationFrame(animate);
       const now = performance.now();
-      const delta = Math.min((now - last) / 1000, 0.05); // حد أقصى 50ms لتجنب قفزات
+      const delta = Math.min((now - last) / 1000, 0.05);
       last = now;
 
-      // تخميد السرعة الأفقية
       velocity.x -= velocity.x * 10.0 * delta;
       velocity.z -= velocity.z * 10.0 * delta;
-      velocity.y -= GRAVITY * delta; // جاذبية
+      velocity.y -= GRAVITY * delta;
 
       const speed = (keys.run ? MOVE_SPEED * RUN_MULT : MOVE_SPEED);
       const dir = new THREE.Vector3();
@@ -168,25 +152,22 @@
 
       let forward = new THREE.Vector3();
       forward.setFromMatrixColumn(obj.matrix, 0);
-      forward.crossVectors(obj.up, forward); // اتجاه أمامي أفقي
+      forward.crossVectors(obj.up, forward);
 
-      if (keys.forward) { velocity.addScaledVector(forward,  speed * delta); }
-      if (keys.back)    { velocity.addScaledVector(forward, -speed * delta); }
+      if (keys.forward) velocity.addScaledVector(forward,  speed * delta);
+      if (keys.back)    velocity.addScaledVector(forward, -speed * delta);
 
       const right = new THREE.Vector3();
       right.setFromMatrixColumn(obj.matrix, 0);
-      if (keys.right) { velocity.addScaledVector(right,  speed * delta); }
-      if (keys.left)  { velocity.addScaledVector(right, -speed * delta); }
+      if (keys.right) velocity.addScaledVector(right,  speed * delta);
+      if (keys.left)  velocity.addScaledVector(right, -speed * delta);
 
-      // تطبيق الحركة
       obj.position.addScaledVector(new THREE.Vector3(velocity.x, 0, velocity.z), 1);
       obj.position.y += velocity.y * delta;
 
-      // كشف الأرض تحت اللاعب لضبط الارتفاع ومنع السقوط عبر الأرض
       downRay.set(obj.position.clone(), DOWN);
       const intersects = downRay.intersectObjects(scene.children, true).filter(i => i.object.name !== 'ignore');
-      const groundHit = intersects.find(i => i.distance <= EYE_HEIGHT + 0.25); // مسافة من العين للأرض
-
+      const groundHit = intersects.find(i => i.distance <= EYE_HEIGHT + 0.25);
       if (groundHit) {
         const targetY = obj.position.y - groundHit.distance + EYE_HEIGHT;
         if (obj.position.y < targetY) {
@@ -200,7 +181,6 @@
     }
     animate();
 
-    // UI أحداث
     const enterBtn = document.getElementById('enter');
     const centerUI = document.getElementById('center');
     const hud = document.getElementById('hud');
@@ -209,7 +189,6 @@
     enterBtn.addEventListener('click', () => {
       controls.lock();
     });
-
     controls.addEventListener('lock', () => {
       centerUI.style.display = 'none';
       hud.style.display = 'block';
@@ -221,31 +200,22 @@
       cross.style.display = 'none';
     });
 
-    // استجابة للحجم
     addEventListener('resize', () => {
       camera.aspect = innerWidth / innerHeight;
       camera.updateProjectionMatrix();
       renderer.setSize(innerWidth, innerHeight);
     });
 
-    // نقر للتفاعل (مكان لتوسعة السلوك: عرض معلومات عند الضغط على عنصر)
-    addEventListener('click', (e) => {
-      if (!controls.isLocked) return; // فقط داخل اللعب
-      const mouse = new THREE.Vector2(0, 0); // منتصف الشاشة (بسبب crosshair)
+    addEventListener('click', () => {
+      if (!controls.isLocked) return;
+      const mouse = new THREE.Vector2(0, 0);
       const ray = new THREE.Raycaster();
       ray.setFromCamera(mouse, camera);
       const hits = ray.intersectObjects(scene.children, true);
-      if (hits.length) {
-        const hit = hits[0];
-        // مثال: إظهار اسم العنصر في الهَدّ
-        if (hit.object && hit.object.name) {
-          console.log('clicked:', hit.object.name);
-        }
+      if (hits.length && hits[0].object.name) {
+        console.log('clicked:', hits[0].object.name);
       }
     });
-
-    // ملاحظة: لفتح الملف GLB محليًا من القرص، معظم المتصفحات تمنع ذلك بالملف مباشرة.
-    // شغّل خادم محلي بسيط (مثل: npx http-server) أو ارفع الملفات لاستضافة بسيطة.
   </script>
 </body>
 </html>
