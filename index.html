@@ -19,6 +19,15 @@
     .credits { position:absolute; bottom:10px; right:12px; color:#9aa4b2; font-size:12px }
     .tip { display:block; margin-top:6px; opacity:.9 }
   </style>
+
+  <!-- import map to remap bare specifier "three" to CDN module -->
+  <script type="importmap">
+  {
+    "imports": {
+      "three": "https://unpkg.com/three@0.160.0/build/three.module.js"
+    }
+  }
+  </script>
 </head>
 <body>
   <div id="app"></div>
@@ -32,8 +41,7 @@
     <div class="center" id="center">
       <div class="card">
         <h1 class="title">ادخل إلى المعرض الافتراضي</h1>
-        <p class="muted">هذا نموذج جاهز لتحويل <b>نموذج 3D (GLB/GLTF)</b> إلى تجربة تصفح على الويب بأسلوب <b>ميتافيرس</b> (First-Person). استبدل رابط النموذج في الكود وسيصبح عالمك جاهزًا.
-        </p>
+        <p class="muted">هذا نموذج جاهز لتحويل <b>نموذج 3D (GLB/GLTF)</b> إلى تجربة تصفح على الويب بأسلوب <b>ميتافيرس</b> (First-Person). استبدل رابط النموذج في الكود وسيصبح عالمك جاهزًا.</p>
         <ol class="muted" style="padding-right:18px">
           <li>ارفع ملفك GLB إلى نفس المجلد أو استخدم رابطًا مباشرًا.</li>
           <li>عدّل المتغير <code>MODEL_URL</code> أدناه لاسم الملف.</li>
@@ -47,12 +55,13 @@
   </div>
 
   <script type="module">
-    import * as THREE from "https://unpkg.com/three@0.160.0/build/three.module.js";
+    // الآن يمكننا استيراد الـ examples/jsm لأن "three" مُعاد توجيهه عبر importmap
+    import * as THREE from "three";
     import { GLTFLoader } from "https://unpkg.com/three@0.160.0/examples/jsm/loaders/GLTFLoader.js";
     import { PointerLockControls } from "https://unpkg.com/three@0.160.0/examples/jsm/controls/PointerLockControls.js";
 
     // === إعدادات قابلة للتعديل ===
-    // ضع هنا رابط مباشر إلى ملف GLB/GLTF أو اسم الملف إذا في نفس المجلد
+    // استخدم رابط مباشر (raw.githubusercontent أو سيرفر مشغل) أو اسم ملف عند استضافة محلية
     const MODEL_URL = 'https://raw.githubusercontent.com/kanawattown-a11y/12/f91219369eb76bb2e445f95abaa61860e3b886dd/naj-v1.glb';
 
     const MOVE_SPEED = 6.0;
@@ -67,12 +76,14 @@
     const renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: 'high-performance' });
     renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
     renderer.setSize(innerWidth, innerHeight);
-    // توافق مع إصدارات الـ Color Management (fallback إن لم تكن الخاصية متاحة)
+
+    // color-space compatibility (r150+ uses outputColorSpace)
     if ('outputColorSpace' in renderer && THREE.SRGBColorSpace !== undefined) {
       renderer.outputColorSpace = THREE.SRGBColorSpace;
     } else if (THREE.sRGBEncoding !== undefined) {
       renderer.outputEncoding = THREE.sRGBEncoding;
     }
+
     if (ENABLE_SHADOWS) renderer.shadowMap.enabled = true;
     app.appendChild(renderer.domElement);
 
@@ -98,7 +109,7 @@
     floor.name = 'auto-floor';
     scene.add(floor);
 
-    // تحميل النموذج
+    // تحميل النموذج (GLB/GLTF)
     const loader = new GLTFLoader();
     loader.load(MODEL_URL, (gltf) => {
       const root = gltf.scene;
@@ -112,7 +123,7 @@
       scene.add(root);
     }, undefined, (err) => {
       console.error('فشل تحميل النموذج:', err);
-      alert('تعذر تحميل النموذج. تأكد من مسار MODEL_URL أو شغّل خادم محلي أو استخدم رابط مباشر للملف.');
+      alert('تعذر تحميل النموذج. تأكد من مسار MODEL_URL أو شغّل خادم محلي أو استخدم رابط مباشر يدعم CORS.');
     });
 
     // Pointer Lock controls
