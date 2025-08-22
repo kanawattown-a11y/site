@@ -3,24 +3,46 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>معرض ثلاثي الأبعاد — نمط ميتافيرس (Three.js)</title>
+  <title>ميتافيرس — معرض ثلاثي الأبعاد (Three.js)</title>
   <style>
-    html, body { height: 100%; margin: 0; background: #0b0f14; font-family: system-ui, -apple-system, Segoe UI, Roboto, "Cairo", sans-serif; }
-    #app { position: fixed; inset: 0; }
-    canvas { display: block; }
-    .ui { position: fixed; inset: 0; display: grid; place-items: center; pointer-events: none; }
-    .hud { position: absolute; top: 12px; left: 12px; background: rgba(0,0,0,.45); color:#fff; padding:10px 12px; border-radius:14px; backdrop-filter: blur(6px); font-size:14px; pointer-events:auto }
-    .center { position: absolute; inset: 0; display: grid; place-items: center; }
-    .card { pointer-events:auto; width:min(520px, 92vw); background:rgba(255,255,255,.06); color:#fff; border:1px solid rgba(255,255,255,.15); border-radius:18px; padding:22px; box-shadow:0 10px 30px rgba(0,0,0,.35) }
-    .title { font-size:20px; margin:0 0 8px; }
-    .muted { color:#cbd5e1; font-size:14px; line-height:1.6 }
-    .btn { margin-top:14px; display:inline-block; background:#06b6d4; color:#001015; padding:10px 14px; border-radius:12px; font-weight:600; text-decoration:none; border:none; cursor:pointer }
-    .crosshair { position:absolute; top:50%; left:50%; width:12px; height:12px; margin-left:-6px; margin-top:-6px; border:2px solid rgba(255,255,255,.7); border-radius:50%; opacity:.7; display:none }
-    .credits { position:absolute; bottom:10px; right:12px; color:#9aa4b2; font-size:12px }
-    .tip { display:block; margin-top:6px; opacity:.9 }
+    :root{--accent:#06b6d4;--bg:#0b0f14}
+    html,body{height:100%;margin:0;background:var(--bg);font-family:system-ui, "Cairo", sans-serif;overflow:hidden}
+    #app{position:fixed;inset:0}
+    canvas{display:block}
+    /* UI */
+    .ui{position:fixed;inset:0;pointer-events:none}
+    .hud{position:absolute;top:12px;left:12px;background:rgba(0,0,0,.45);color:#fff;padding:10px 12px;border-radius:12px;backdrop-filter:blur(6px);font-size:14px;pointer-events:auto}
+    .center{position:absolute;inset:0;display:grid;place-items:center}
+    .card{pointer-events:auto;width:min(560px,92vw);background:rgba(255,255,255,.06);color:#fff;border:1px solid rgba(255,255,255,.08);border-radius:14px;padding:20px;box-shadow:0 8px 24px rgba(0,0,0,.45)}
+    .title{font-size:20px;margin:0 0 8px}
+    .muted{color:#cbd5e1;font-size:14px;line-height:1.5}
+    .btn{margin-top:12px;background:var(--accent);color:#001015;padding:10px 14px;border-radius:10px;border:none;cursor:pointer;font-weight:600;pointer-events:auto}
+    .credits{position:absolute;bottom:10px;right:12px;color:#9aa4b2;font-size:12px;pointer-events:none}
+    .crosshair{position:absolute;top:50%;left:50%;width:14px;height:14px;margin-left:-7px;margin-top:-7px;border:2px solid rgba(255,255,255,.7);border-radius:50%;display:none;pointer-events:none}
+
+    /* Mobile Joystick */
+    .touch-controls{position:fixed;inset:0;pointer-events:none}
+    .joystick-left, .joystick-right {
+      position: absolute; bottom:18vh; width:120px; height:120px; border-radius:50%;
+      background:rgba(255,255,255,0.04); display:flex; align-items:center; justify-content:center;
+      pointer-events:auto; touch-action:none; user-select:none;
+      box-shadow:0 6px 18px rgba(0,0,0,.45);
+    }
+    .joystick-left{left:18px}
+    .joystick-right{right:18px; bottom:22vh; width:90px; height:90px; opacity:.85}
+    .stick{width:48px;height:48px;border-radius:50%;background:rgba(255,255,255,.12)}
+    .mobile-buttons { position: absolute; right: 18px; bottom: 6vh; display:flex; gap:10px; pointer-events:auto }
+    .mobile-btn { background: rgba(255,255,255,.06); border-radius:10px; padding:10px 12px; color:#fff; border:1px solid rgba(255,255,255,.06); font-weight:600 }
+
+    /* small screens adjustments */
+    @media (max-width:700px){
+      .card{width:92vw;padding:16px}
+      .joystick-left{width:110px;height:110px}
+      .joystick-right{width:80px;height:80px;bottom:18vh}
+    }
   </style>
 
-  <!-- import map to remap bare specifier "three" to CDN module -->
+  <!-- import map لتوجيه bare specifier "three" -->
   <script type="importmap">
   {
     "imports": {
@@ -32,206 +54,429 @@
 <body>
   <div id="app"></div>
 
-  <!-- UI overlay -->
   <div class="ui">
     <div class="hud" id="hud" style="display:none">
       <div>تحكم: WASD / الأسهم للمشي • الماوس للدوران • Space للقفز • Shift للركض • Esc للخروج</div>
-      <span class="tip">نصيحة: اضغط على العناصر لإظهار معلوماتها (يمكن تعديل السلوك في الكود)</span>
+      <div style="margin-top:6px;font-size:13px;color:#cbd5e1">موبايل: استخدم العصا اليسار للمشي، المس في أي مكان لتدوير، زر القفز/الركض موجودان</div>
     </div>
-    <div class="center" id="center">
+
+    <div class="center" id="centerUI">
       <div class="card">
-        <h1 class="title">ادخل إلى المعرض الافتراضي</h1>
-        <p class="muted">هذا نموذج جاهز لتحويل <b>نموذج 3D (GLB/GLTF)</b> إلى تجربة تصفح على الويب بأسلوب <b>ميتافيرس</b> (First-Person). استبدل رابط النموذج في الكود وسيصبح عالمك جاهزًا.</p>
+        <h1 class="title">ادخل إلى معرضك الافتراضي</h1>
+        <p class="muted">هذا قالب جاهز لتحويل النموذج GLB/GLTF إلى تجربة ميتافيرس متوافقة مع الكمبيوتر والموبايل. استبدل <code>MODEL_URL</code> بمسار ملفك.</p>
         <ol class="muted" style="padding-right:18px">
-          <li>ارفع ملفك GLB إلى نفس المجلد أو استخدم رابطًا مباشرًا.</li>
-          <li>عدّل المتغير <code>MODEL_URL</code> أدناه لاسم الملف.</li>
-          <li>اضغط «دخول» لبدء التجربة، ثم انقر بالماوس لتفعيل الحركة.</li>
+          <li>ارفع ملفك GLB إلى نفس المجلد أو ضع رابط مباشر يدعم CORS.</li>
+          <li>يمكن أن يكون الملف مضغوطًا بـ Draco — تم إضافة دعم تلقائي.</li>
+          <li>اضغط زر \"دخول\" ثم انقر/المس لتفعيل التحكم.</li>
         </ol>
-        <button class="btn" id="enter">دخول</button>
+        <div style="margin-top:10px;display:flex;gap:10px">
+          <button class="btn" id="enter">دخول</button>
+          <button class="btn" id="toggleShadows" style="background:#ffb86b">تبديل الظلال</button>
+        </div>
       </div>
     </div>
+
     <div class="crosshair" id="cross"></div>
-    <div class="credits">Three.js • قالب ميتافيرس بسيط</div>
+    <div class="credits">Three.js • Metaverse Template</div>
+  </div>
+
+  <!-- Mobile touch controls -->
+  <div class="touch-controls" id="touchControls" style="display:none">
+    <div class="joystick-left" id="joyLeft"><div class="stick" id="stickLeft"></div></div>
+    <div class="joystick-right" id="joyRight"><div class="stick" id="stickRight"></div></div>
+    <div class="mobile-buttons" id="mobileBtns">
+      <button class="mobile-btn" id="btnJump">قفز</button>
+      <button class="mobile-btn" id="btnRun">ركض</button>
+    </div>
   </div>
 
   <script type="module">
-    // الآن يمكننا استيراد الـ examples/jsm لأن "three" مُعاد توجيهه عبر importmap
     import * as THREE from "three";
     import { GLTFLoader } from "https://unpkg.com/three@0.160.0/examples/jsm/loaders/GLTFLoader.js";
+    import { DRACOLoader } from "https://unpkg.com/three@0.160.0/examples/jsm/loaders/DRACOLoader.js";
     import { PointerLockControls } from "https://unpkg.com/three@0.160.0/examples/jsm/controls/PointerLockControls.js";
 
-    // === إعدادات قابلة للتعديل ===
-    // استخدم رابط مباشر (raw.githubusercontent أو سيرفر مشغل) أو اسم ملف عند استضافة محلية
+    // ------------------ إعدادات قابلة للتعديل ------------------
     const MODEL_URL = 'https://raw.githubusercontent.com/kanawattown-a11y/12/f91219369eb76bb2e445f95abaa61860e3b886dd/naj.glb';
+    const MOVE_SPEED = 5.0;
+    const RUN_MULT = 1.8;
+    const JUMP_FORCE = 8.0;
+    const GRAVITY = 24.0;
+    const EYE_HEIGHT = 1.7;
+    let ENABLE_SHADOWS = true;
 
-    const MOVE_SPEED = 6.0;
-    const RUN_MULT = 1.7;
-    const JUMP_FORCE = 8.5;
-    const GRAVITY = 22.0;
-    const EYE_HEIGHT = 1.75;
-    const ENABLE_SHADOWS = true;
+    // مسار draco decoder (موصى به: gstatic)
+    const DRACO_DECODER_PATH = 'https://www.gstatic.com/draco/v1/decoders/';
 
-    // === أسس Three.js ===
-    const app = document.getElementById('app');
-    const renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: 'high-performance' });
-    renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
-    renderer.setSize(innerWidth, innerHeight);
-
-    // color-space compatibility (r150+ uses outputColorSpace)
+    // ------------------ إعداد Three.js ------------------
+    const container = document.getElementById('app');
+    const renderer = new THREE.WebGLRenderer({ antialias: true });
+    // ضبط pixelRatio أقل على الموبايل لتحسين الأداء
+    const isMobile = /Mobi|Android/i.test(navigator.userAgent);
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, isMobile ? 1.0 : 2));
+    renderer.setSize(window.innerWidth, window.innerHeight);
+    // color space handling
     if ('outputColorSpace' in renderer && THREE.SRGBColorSpace !== undefined) {
       renderer.outputColorSpace = THREE.SRGBColorSpace;
     } else if (THREE.sRGBEncoding !== undefined) {
       renderer.outputEncoding = THREE.sRGBEncoding;
     }
-
-    if (ENABLE_SHADOWS) renderer.shadowMap.enabled = true;
-    app.appendChild(renderer.domElement);
+    renderer.shadowMap.enabled = ENABLE_SHADOWS;
+    renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+    container.appendChild(renderer.domElement);
 
     const scene = new THREE.Scene();
     scene.background = new THREE.Color(0x0b0f14);
-    const camera = new THREE.PerspectiveCamera(70, innerWidth / innerHeight, 0.1, 1000);
 
-    // إضاءة
-    const hemi = new THREE.HemisphereLight(0xffffff, 0x202028, 0.8);
+    const camera = new THREE.PerspectiveCamera(70, window.innerWidth / window.innerHeight, 0.1, 2000);
+    camera.position.set(0, EYE_HEIGHT, 4);
+
+    // ------------------ إضاءات وبيئة بسيطة ------------------
+    const hemi = new THREE.HemisphereLight(0xffffff, 0x080820, 0.6);
     scene.add(hemi);
-    const dir = new THREE.DirectionalLight(0xffffff, 0.8);
-    dir.position.set(5, 10, 2);
+
+    const ambient = new THREE.AmbientLight(0xffffff, 0.25);
+    scene.add(ambient);
+
+    const dir = new THREE.DirectionalLight(0xffffff, 0.9);
+    dir.position.set(5, 12, 5);
     dir.castShadow = ENABLE_SHADOWS;
+    dir.shadow.camera.near = 0.5;
+    dir.shadow.camera.far = 100;
     dir.shadow.mapSize.set(2048, 2048);
     scene.add(dir);
 
-    // أرضية افتراضية
-    const floorGeo = new THREE.PlaneGeometry(2000, 2000);
-    const floorMat = new THREE.MeshStandardMaterial({ color: 0x0f141b, roughness: 1 });
+    // ثواني من الأضواء المتنوعة لتحسين ظهور المواد المعدنية/لامعة
+    const fill1 = new THREE.PointLight(0xffe8d6, 0.25, 30);
+    fill1.position.set(-6, 4, -4);
+    scene.add(fill1);
+    const fill2 = new THREE.PointLight(0xd6eaff, 0.25, 30);
+    fill2.position.set(6, 4, 4);
+    scene.add(fill2);
+
+    // PMREM generator لتحسين تأثير الإنعكاسات (إن قابل)
+    const pmrem = new THREE.PMREMGenerator(renderer);
+    pmrem.compileEquirectangularShader();
+
+    // أرضية واقعية خفيفة (لتلقي الظلال ومرجع بصري)
+    const floorGeo = new THREE.PlaneGeometry(200, 200);
+    const floorMat = new THREE.MeshStandardMaterial({ color: 0x0f141b, roughness: 0.95, metalness: 0.0 });
     const floor = new THREE.Mesh(floorGeo, floorMat);
     floor.rotation.x = -Math.PI / 2;
     floor.receiveShadow = ENABLE_SHADOWS;
-    floor.name = 'auto-floor';
     scene.add(floor);
 
-    // تحميل النموذج (GLB/GLTF)
+    // ------------------ التحميل مع دعم DRACO ------------------
+    const dracoLoader = new DRACOLoader();
+    dracoLoader.setDecoderPath(DRACO_DECODER_PATH); // سيحمّل draco_decoder.wasm من هنا
+
     const loader = new GLTFLoader();
+    loader.setDRACOLoader(dracoLoader);
+
+    // تجميع حدود التصادم بعد التحميل
+    const collisionBoxes = []; // مصفوفة Box3
+    function addCollisionForObject(obj){
+      obj.updateWorldMatrix(true,true);
+      const box = new THREE.Box3().setFromObject(obj);
+      // تجاهل صناديق صغيرة جدًا
+      if (box.isEmpty() === false) collisionBoxes.push(box);
+    }
+
     loader.load(MODEL_URL, (gltf) => {
       const root = gltf.scene;
+      // ضبط خفيف للعرض (إن لزم)
       root.traverse((o) => {
         if (o.isMesh) {
           o.castShadow = ENABLE_SHADOWS;
           o.receiveShadow = ENABLE_SHADOWS;
-          if (o.material && o.material.map) o.material.map.anisotropy = 8;
+          o.material.side = THREE.FrontSide;
+          // في حال المواد مظلمة: رفع التعريض الخفيف
+          if (o.material && 'emissive' in o.material) {
+            o.material.emissiveIntensity = o.material.emissiveIntensity ?? 0.0;
+          }
         }
       });
+
+      // إضافة للنشهد
       scene.add(root);
-    }, undefined, (err) => {
+
+      // حفظ صناديق التصادم: نحسب لكل جزء مهم (أسماء كبيرة أو مجموعات)
+      root.traverse((o) => {
+        if (o.isMesh) {
+          // نعدل زوايا صغيرة ونأخذ صندوق عالمي
+          addCollisionForObject(o);
+        }
+      });
+
+      console.log('Model loaded, collision boxes:', collisionBoxes.length);
+    }, (xhr) => {
+      // تقدم التحميل
+      // console.log((xhr.loaded/xhr.total*100).toFixed(0)+"%");
+    }, (err) => {
       console.error('فشل تحميل النموذج:', err);
-      alert('تعذر تحميل النموذج. تأكد من مسار MODEL_URL أو شغّل خادم محلي أو استخدم رابط مباشر يدعم CORS.');
+      alert('تعذر تحميل النموذج. تأكد من مسار MODEL_URL أو CORS أو شغّل خادم محلي.');
     });
 
-    // Pointer Lock controls
+    // ------------------ التحكم (PointerLock للمكتبي + لمس للموبايل) ------------------
     const controls = new PointerLockControls(camera, renderer.domElement);
     scene.add(controls.getObject());
-    camera.position.set(0, EYE_HEIGHT, 4);
 
+    // حالة التحكم للموبايل: yaw/pitch منفصلان
+    let yaw = 0, pitch = 0;
+    const maxPitch = Math.PI/2 - 0.05;
+
+    // وضع التثبيت (للموبايل نستخدم اللمس لتدوير)
+    let pointerLocked = false;
+    controls.addEventListener('lock', () => { pointerLocked = true; document.getElementById('centerUI').style.display='none'; document.getElementById('hud').style.display='block'; document.getElementById('cross').style.display='block'; });
+    controls.addEventListener('unlock', () => { pointerLocked = false; document.getElementById('centerUI').style.display='grid'; document.getElementById('hud').style.display='none'; document.getElementById('cross').style.display='none'; });
+
+    // الحركة الفيزيائية البسيطة
     const keys = { forward:false, back:false, left:false, right:false, run:false };
     const velocity = new THREE.Vector3();
     let canJump = false;
 
-    const onKey = (e, d) => {
-      switch(e.code){
-        case 'ArrowUp': case 'KeyW': keys.forward = d; break;
-        case 'ArrowLeft': case 'KeyA': keys.left = d; break;
-        case 'ArrowDown': case 'KeyS': keys.back = d; break;
-        case 'ArrowRight': case 'KeyD': keys.right = d; break;
-        case 'ShiftLeft': case 'ShiftRight': keys.run = d; break;
-        case 'Space': if (d && canJump) { velocity.y = JUMP_FORCE; canJump = false; } break;
+    function setKey(code, down){
+      switch(code){
+        case 'ArrowUp': case 'KeyW': keys.forward = down; break;
+        case 'ArrowLeft': case 'KeyA': keys.left = down; break;
+        case 'ArrowDown': case 'KeyS': keys.back = down; break;
+        case 'ArrowRight': case 'KeyD': keys.right = down; break;
+        case 'ShiftLeft': case 'ShiftRight': keys.run = down; break;
       }
-    };
-    addEventListener('keydown', e => onKey(e, true));
-    addEventListener('keyup',   e => onKey(e, false));
+    }
+    addEventListener('keydown', e => { if(e.code==='Space'){ if(canJump){ velocity.y = JUMP_FORCE; canJump=false; } } setKey(e.code, true); });
+    addEventListener('keyup', e => setKey(e.code, false));
 
-    const downRay = new THREE.Raycaster();
-    const DOWN = new THREE.Vector3(0, -1, 0);
+    // التفاعل باللمس: عصا تحكم (Left joystick) + لمس للتدوير (Right drag)
+    const touchControls = document.getElementById('touchControls');
+    const joyLeft = document.getElementById('joyLeft');
+    const stickLeft = document.getElementById('stickLeft');
+    const joyRight = document.getElementById('joyRight');
+    const stickRight = document.getElementById('stickRight');
+    const btnJump = document.getElementById('btnJump');
+    const btnRun = document.getElementById('btnRun');
 
-    let last = performance.now();
+    let mobileMove = { x:0, y:0 };
+    let movingByTouch = false;
+
+    // helper for touch joystick
+    function setupJoystick(container, stickElem, onMove){
+      let active = false;
+      let startX=0, startY=0;
+      const maxDist = 40;
+      container.addEventListener('pointerdown', (e) => {
+        active = true; movingByTouch = true;
+        startX = e.clientX; startY = e.clientY;
+        container.setPointerCapture(e.pointerId);
+      });
+      container.addEventListener('pointermove', (e) => {
+        if(!active) return;
+        let dx = e.clientX - startX;
+        let dy = e.clientY - startY;
+        // clamp
+        const mag = Math.sqrt(dx*dx + dy*dy);
+        if(mag > maxDist){ dx = dx / mag * maxDist; dy = dy / mag * maxDist; }
+        stickElem.style.transform = `translate(${dx}px, ${dy}px)`;
+        onMove(dx, dy);
+      });
+      container.addEventListener('pointerup', (e) => {
+        active = false; movingByTouch = false;
+        stickElem.style.transform = `translate(0px,0px)`;
+        onMove(0,0);
+      });
+      container.addEventListener('pointercancel', (e) => { active=false; movingByTouch=false; stickElem.style.transform='translate(0,0)'; onMove(0,0); });
+    }
+
+    setupJoystick(joyLeft, stickLeft, (dx,dy) => {
+      // left joystick: dx -> right/left, dy -> forward/back (inverted Y)
+      mobileMove.x = dx / 40; // -1..1
+      mobileMove.y = -dy / 40; // -1..1
+    });
+
+    // right joystick for look (drag)
+    let lookActive = false, lookStartX=0, lookStartY=0;
+    let mobileLook = { dx:0, dy:0 };
+    joyRight.addEventListener('pointerdown', (e)=>{ lookActive=true; lookStartX=e.clientX; lookStartY=e.clientY; joyRight.setPointerCapture(e.pointerId); });
+    joyRight.addEventListener('pointermove', (e)=>{ if(!lookActive) return; const dx=e.clientX-lookStartX, dy=e.clientY-lookStartY; mobileLook.dx = dx/120; mobileLook.dy = dy/120; stickRight.style.transform = `translate(${Math.max(-28,Math.min(28,dx/3))}px, ${Math.max(-28,Math.min(28,dy/3))}px)`; });
+    joyRight.addEventListener('pointerup', (e)=>{ lookActive=false; mobileLook.dx=0; mobileLook.dy=0; stickRight.style.transform='translate(0,0)'; });
+
+    btnJump.addEventListener('click', ()=>{ if(canJump){ velocity.y = JUMP_FORCE; canJump=false; } });
+    btnRun.addEventListener('pointerdown', ()=> keys.run = true);
+    btnRun.addEventListener('pointerup', ()=> keys.run = false);
+    btnRun.addEventListener('touchstart', ()=> keys.run = true);
+    btnRun.addEventListener('touchend', ()=> keys.run = false);
+
+    // لمس عام لتدوير الكاميرا (بديل للـ PointerLock على الموبايل)
+    let lastTouchX = null, lastTouchY = null;
+    addEventListener('touchstart', (e)=>{
+      if(e.touches.length===1 && !pointerLocked){
+        lastTouchX = e.touches[0].clientX;
+        lastTouchY = e.touches[0].clientY;
+      }
+    }, {passive:false});
+    addEventListener('touchmove', (e)=>{
+      if(e.touches.length===1 && !pointerLocked && lastTouchX !== null){
+        const t = e.touches[0];
+        const dx = (t.clientX - lastTouchX) / 200;
+        const dy = (t.clientY - lastTouchY) / 200;
+        yaw -= dx;
+        pitch -= dy;
+        pitch = Math.max(-maxPitch, Math.min(maxPitch, pitch));
+        lastTouchX = t.clientX; lastTouchY = t.clientY;
+      }
+    }, {passive:false});
+    addEventListener('touchend', ()=>{ lastTouchX = null; lastTouchY = null; });
+
+    // دعم الماوس الحر (click and drag) لو لم يتم pointer lock
+    let mouseDown = false, lastMouseX=0, lastMouseY=0;
+    addEventListener('mousedown', (e)=>{ if(!pointerLocked){ mouseDown=true; lastMouseX=e.clientX; lastMouseY=e.clientY; } });
+    addEventListener('mousemove', (e)=>{ if(mouseDown && !pointerLocked){ const dx=(e.clientX-lastMouseX)/200; const dy=(e.clientY-lastMouseY)/200; yaw -= dx; pitch -= dy; pitch = Math.max(-maxPitch, Math.min(maxPitch, pitch)); lastMouseX=e.clientX; lastMouseY=e.clientY; }});
+    addEventListener('mouseup', ()=>{ mouseDown=false; });
+
+    // ------------------ فيزياء التصادم البسيطة ------------------
+    const playerRadius = 0.35; // نصف قطر اللاعب
+    function playerCollisions(position){
+      // position: THREE.Vector3 (player position)
+      for(const box of collisionBoxes){
+        // نوسّع الصندوق بمقدار نصف قطر اللاعب
+        const expanded = box.clone().expandByScalar(playerRadius);
+        if(expanded.containsPoint(position)){
+          // إذا داخل، نحسب أقرب نقطة على صندوق ونزح اللاعب بعيدًا
+          const closest = expanded.clampPoint(position.clone(), new THREE.Vector3());
+          const push = position.clone().sub(closest);
+          if(push.lengthSq() === 0){
+            // بديل بسيط: ادفع للأعلى قليلاً
+            position.add(new THREE.Vector3(0, 0.05, 0));
+          } else {
+            position.add(push.setLength( (playerRadius - push.length()) + 0.01 ));
+          }
+        }
+      }
+    }
+
+    // ------------------ حلقة الرسوم والحركة ------------------
+    let lastTime = performance.now();
     function animate(){
       requestAnimationFrame(animate);
       const now = performance.now();
-      const delta = Math.min((now - last) / 1000, 0.05);
-      last = now;
+      const dt = Math.min((now - lastTime) / 1000, 0.05);
+      lastTime = now;
 
-      velocity.x -= velocity.x * 10.0 * delta;
-      velocity.z -= velocity.z * 10.0 * delta;
-      velocity.y -= GRAVITY * delta;
-
+      // تحديث نظريات الحركة من المفاتيح أو اللمس
       const speed = (keys.run ? MOVE_SPEED * RUN_MULT : MOVE_SPEED);
-      const dir = new THREE.Vector3();
+
+      // حاسبة الاتجاه الأمامي/الجانبي
+      let moveX = 0, moveZ = 0;
+      if(isMobile){
+        moveX = mobileMove.x;
+        moveZ = mobileMove.y;
+      } else {
+        if(keys.forward) moveZ += 1;
+        if(keys.back) moveZ -= 1;
+        if(keys.left) moveX -= 1;
+        if(keys.right) moveX += 1;
+      }
+
+      // تحويل الاتجاه بحسب دوران اللاعب (yaw)
       const obj = controls.getObject();
-      camera.getWorldDirection(dir);
+      // إذا PointerLock مش مفعل، نستخدم yaw/pitch المحمول
+      if(!pointerLocked){
+        obj.rotation.y = yaw;
+        camera.rotation.x = pitch;
+      }
 
-      let forward = new THREE.Vector3();
-      forward.setFromMatrixColumn(obj.matrix, 0);
-      forward.crossVectors(obj.up, forward);
+      // اتجاه أمامي فعلي (أفقي)
+      const forward = new THREE.Vector3(0,0,-1).applyQuaternion(obj.quaternion).setY(0).normalize();
+      const right = new THREE.Vector3(1,0,0).applyQuaternion(obj.quaternion).setY(0).normalize();
 
-      if (keys.forward) velocity.addScaledVector(forward,  speed * delta);
-      if (keys.back)    velocity.addScaledVector(forward, -speed * delta);
+      // نعدل السرعة الأفقية
+      const targetVel = new THREE.Vector3();
+      targetVel.addScaledVector(forward, moveZ * speed);
+      targetVel.addScaledVector(right, moveX * speed);
 
-      const right = new THREE.Vector3();
-      right.setFromMatrixColumn(obj.matrix, 0);
-      if (keys.right) velocity.addScaledVector(right,  speed * delta);
-      if (keys.left)  velocity.addScaledVector(right, -speed * delta);
+      // تقريب التخميد (lerp)
+      velocity.x += (targetVel.x - velocity.x) * Math.min(10*dt,1);
+      velocity.z += (targetVel.z - velocity.z) * Math.min(10*dt,1);
 
-      obj.position.addScaledVector(new THREE.Vector3(velocity.x, 0, velocity.z), 1);
-      obj.position.y += velocity.y * delta;
+      // الجاذبية
+      velocity.y -= GRAVITY * dt;
 
-      downRay.set(obj.position.clone(), DOWN);
-      const intersects = downRay.intersectObjects(scene.children, true).filter(i => i.object.name !== 'ignore');
-      const groundHit = intersects.find(i => i.distance <= EYE_HEIGHT + 0.25);
-      if (groundHit) {
+      // تطبيق الحركة
+      obj.position.addScaledVector(new THREE.Vector3(velocity.x, 0, velocity.z), dt);
+
+      // كشف الأرض باستخدام Raycast
+      const downRay = new THREE.Raycaster(obj.position.clone(), new THREE.Vector3(0,-1,0), 0, 3);
+      const hits = downRay.intersectObjects(scene.children, true);
+      const groundHit = hits.find(h=> h.distance <= EYE_HEIGHT + 0.25);
+      if(groundHit){
         const targetY = obj.position.y - groundHit.distance + EYE_HEIGHT;
-        if (obj.position.y < targetY) {
+        if(obj.position.y < targetY){
           obj.position.y = targetY;
           velocity.y = 0;
           canJump = true;
         }
+      } else {
+        // حرّك لاسفل
+        obj.position.y += velocity.y * dt;
+      }
+
+      // تصادم مع صناديق (منع المرور) — نمرر موضع اللاعب بعد الحركة الأفقية والعمودية
+      const playerPos = obj.position.clone();
+      playerCollisions(playerPos);
+      obj.position.copy(playerPos);
+
+      // تحديث الدوران الفعلي للكاميرا لو pointerLocked
+      if(pointerLocked){
+        // yaw/pitch تُدار داخلياً بواسطة PointerLockControls
+      } else {
+        // عند عدم القفل، نطبّق yaw/pitch على الكائن (تم أعلاه)
       }
 
       renderer.render(scene, camera);
     }
     animate();
 
-    const enterBtn = document.getElementById('enter');
-    const centerUI = document.getElementById('center');
-    const hud = document.getElementById('hud');
-    const cross = document.getElementById('cross');
-
-    enterBtn.addEventListener('click', () => {
+    // ------------------ واجهة المستخدم events ------------------
+    document.getElementById('enter').addEventListener('click', ()=> {
+      // إظهار عناصر الموبايل لو الجهاز موبايل
+      if(isMobile){
+        document.getElementById('touchControls').style.display='block';
+        document.getElementById('hud').style.display='block';
+      }
+      // نحاول القفل (PointerLock)؛ على الموبايل لن يعمل دائماً، سنستخدم لمس التدوير
       controls.lock();
     });
-    controls.addEventListener('lock', () => {
-      centerUI.style.display = 'none';
-      hud.style.display = 'block';
-      cross.style.display = 'block';
-    });
-    controls.addEventListener('unlock', () => {
-      centerUI.style.display = 'grid';
-      hud.style.display = 'none';
-      cross.style.display = 'none';
+
+    // زر تبديل الظلال
+    document.getElementById('toggleShadows').addEventListener('click', ()=>{
+      ENABLE_SHADOWS = !ENABLE_SHADOWS;
+      renderer.shadowMap.enabled = ENABLE_SHADOWS;
+      floor.receiveShadow = ENABLE_SHADOWS;
+      dir.castShadow = ENABLE_SHADOWS;
+      // تحديث جميع المِشِز
+      scene.traverse(o => { if(o.isMesh){ o.castShadow = ENABLE_SHADOWS; o.receiveShadow = ENABLE_SHADOWS; } });
+      document.getElementById('toggleShadows').textContent = ENABLE_SHADOWS ? 'إيقاف الظلال' : 'تشغيل الظلال';
     });
 
-    addEventListener('resize', () => {
+    // دعم تدوير الماوس داخل المستعرض (لو لم يتم pointer lock)
+    renderer.domElement.addEventListener('click', (e)=>{
+      // انقر لطلب pointer lock على الحواسيب
+      if(!pointerLocked && !isMobile) controls.lock();
+    });
+
+    // منع اللمس الافتراضي لعناصر التحكم
+    ['touchstart','touchmove','touchend'].forEach(ev => document.addEventListener(ev, e=>{ if(e.target.closest('.joystick-left') || e.target.closest('.joystick-right') || e.target.closest('.mobile-buttons')) e.preventDefault(); }, {passive:false}));
+
+    // استجابة لإعادة الحجم
+    addEventListener('resize', ()=>{
       camera.aspect = innerWidth / innerHeight;
       camera.updateProjectionMatrix();
       renderer.setSize(innerWidth, innerHeight);
     });
 
-    addEventListener('click', () => {
-      if (!controls.isLocked) return;
-      const mouse = new THREE.Vector2(0, 0);
-      const ray = new THREE.Raycaster();
-      ray.setFromCamera(mouse, camera);
-      const hits = ray.intersectObjects(scene.children, true);
-      if (hits.length && hits[0].object.name) {
-        console.log('clicked:', hits[0].object.name);
-      }
+    // تنظيف draco loader عند الانتهاء (اختياري)
+    window.addEventListener('unload', ()=>{
+      try{ dracoLoader.dispose(); } catch(e){/* ignore */ }
     });
   </script>
 </body>
