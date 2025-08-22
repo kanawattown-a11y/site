@@ -1,303 +1,2261 @@
 <!DOCTYPE html>
 <html lang="ar" dir="rtl">
 <head>
-  <meta charset="utf-8" />
-  <!-- Allow pinch-zoom on mobile for accessibility -->
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes" />
-  <title>معرض نجوم الجزيرة الافتراضي — v2 (Mobile-First & Performance)</title>
-  <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
-  <style>
-    :root{
-      --bg:#0f1724;
-      --glass:rgba(255,255,255,0.06);
-      --glass-border:rgba(255,255,255,0.12);
-      --text:#fff;
-      --accent:linear-gradient(135deg,#667eea,#764ba2);
-      --safe-top: env(safe-area-inset-top);
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, maximum-scale=1.0, minimum-scale=1.0">
+    <title>معرض نجوم الجزيرة الافتراضي - تجربة واقعية فائقة الاحترافية</title>
+    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+    
+    <style>
+        :root {
+            --primary-gradient: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            --secondary-gradient: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+            --accent-gradient: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+            --dark-gradient: linear-gradient(135deg, #0c0c0c 0%, #1a1a2e 100%);
+            --glass-bg: rgba(255, 255, 255, 0.08);
+            --glass-border: rgba(255, 255, 255, 0.15);
+            --glass-shadow: 0 8px 32px rgba(0, 0, 0, 0.37);
+            --text-primary: #ffffff;
+            --text-secondary: #b8c6db;
+            --text-accent: #64b5f6;
+            --success: #4caf50;
+            --warning: #ff9800;
+            --error: #f44336;
+            --info: #2196f3;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        html, body {
+            height: 100vh;
+            width: 100vw;
+            overflow: hidden;
+            font-family: 'Cairo', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: var(--dark-gradient);
+            color: var(--text-primary);
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+            user-select: none;
+            -webkit-user-select: none;
+            -moz-user-select: none;
+            -ms-user-select: none;
+            touch-action: manipulation;
+        }
+
+        #app {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 1;
+        }
+
+        canvas {
+            display: block;
+            outline: none;
+            touch-action: none;
+        }
+
+        /* Advanced Loading Screen */
+        .loading-screen {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: var(--dark-gradient);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            z-index: 10000;
+            transition: all 1s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+        }
+
+        .loading-screen.hidden {
+            opacity: 0;
+            visibility: hidden;
+            transform: scale(0.8);
+        }
+
+        .loading-logo {
+            width: 120px;
+            height: 120px;
+            background: var(--glass-bg);
+            border: 2px solid var(--glass-border);
+            border-radius: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 32px;
+            font-weight: 900;
+            color: var(--text-primary);
+            margin-bottom: 30px;
+            backdrop-filter: blur(20px);
+            box-shadow: var(--glass-shadow);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .loading-logo::before {
+            content: '';
+            position: absolute;
+            top: -50%;
+            left: -50%;
+            width: 200%;
+            height: 200%;
+            background: conic-gradient(from 0deg, transparent, rgba(255, 255, 255, 0.1), transparent);
+            animation: logoRotate 3s linear infinite;
+        }
+
+        .loading-logo span {
+            position: relative;
+            z-index: 2;
+            background: var(--primary-gradient);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        @keyframes logoRotate {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .loading-title {
+            font-size: 24px;
+            font-weight: 700;
+            margin-bottom: 12px;
+            text-align: center;
+            background: var(--primary-gradient);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .loading-subtitle {
+            font-size: 14px;
+            color: var(--text-secondary);
+            margin-bottom: 30px;
+            text-align: center;
+            max-width: 300px;
+            line-height: 1.6;
+        }
+
+        .loading-progress-container {
+            width: 250px;
+            height: 6px;
+            background: var(--glass-bg);
+            border-radius: 3px;
+            overflow: hidden;
+            position: relative;
+            box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.3);
+        }
+
+        .loading-progress {
+            height: 100%;
+            background: var(--accent-gradient);
+            border-radius: 3px;
+            transition: width 0.3s ease;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .loading-progress::after {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.4), transparent);
+            animation: progressShimmer 2s infinite;
+        }
+
+        @keyframes progressShimmer {
+            0% { transform: translateX(-100%); }
+            100% { transform: translateX(100%); }
+        }
+
+        .loading-percentage {
+            margin-top: 12px;
+            font-size: 12px;
+            color: var(--text-accent);
+            text-align: center;
+            font-weight: 600;
+        }
+
+        /* Advanced UI Overlay */
+        .ui-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 1000;
+        }
+
+        .ui-overlay > * {
+            pointer-events: auto;
+        }
+
+        /* Header HUD */
+        .header-hud {
+            position: absolute;
+            top: 15px;
+            left: 15px;
+            right: 15px;
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            gap: 15px;
+            z-index: 100;
+        }
+
+        .brand-container {
+            background: var(--glass-bg);
+            border: 1px solid var(--glass-border);
+            border-radius: 16px;
+            padding: 12px 18px;
+            backdrop-filter: blur(20px);
+            box-shadow: var(--glass-shadow);
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            transition: all 0.3s ease;
+        }
+
+        .brand-container:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 12px 40px rgba(0, 0, 0, 0.5);
+        }
+
+        .brand-icon {
+            width: 36px;
+            height: 36px;
+            background: var(--primary-gradient);
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 900;
+            color: white;
+            font-size: 14px;
+            box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3);
+        }
+
+        .brand-text {
+            font-size: 14px;
+            font-weight: 700;
+            color: var(--text-primary);
+        }
+
+        .performance-monitor {
+            background: var(--glass-bg);
+            border: 1px solid var(--glass-border);
+            border-radius: 12px;
+            padding: 8px 14px;
+            backdrop-filter: blur(20px);
+            box-shadow: var(--glass-shadow);
+            font-family: 'Courier New', monospace;
+            font-size: 11px;
+            color: var(--text-accent);
+            min-width: 150px;
+        }
+
+        /* Environment Controls */
+        .environment-controls {
+            position: absolute;
+            top: 15px;
+            right: 15px;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            z-index: 2000;
+            pointer-events: auto;
+        }
+
+        .env-button {
+            background: var(--glass-bg);
+            border: 1px solid var(--glass-border);
+            border-radius: 12px;
+            padding: 10px 16px;
+            color: var(--text-primary);
+            font-weight: 600;
+            font-size: 12px;
+            cursor: pointer;
+            backdrop-filter: blur(20px);
+            box-shadow: var(--glass-shadow);
+            transition: all 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+            position: relative;
+            overflow: hidden;
+            min-width: 100px;
+            text-align: center;
+            pointer-events: auto;
+            user-select: none;
+        }
+
+        .env-button::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.1), transparent);
+            transition: left 0.5s ease;
+        }
+
+        .env-button:hover {
+            transform: translateY(-2px) scale(1.02);
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.4);
+        }
+
+        .env-button:hover::before {
+            left: 100%;
+        }
+
+        .env-button.active {
+            background: var(--accent-gradient);
+            color: white;
+            border-color: transparent;
+            box-shadow: 0 6px 20px rgba(79, 172, 254, 0.4);
+        }
+
+        /* Welcome Screen */
+        .welcome-screen {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.9);
+            backdrop-filter: blur(20px);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 5000;
+            padding: 20px;
+        }
+
+        .welcome-card {
+            background: var(--glass-bg);
+            border: 1px solid var(--glass-border);
+            border-radius: 24px;
+            padding: 40px;
+            backdrop-filter: blur(30px);
+            box-shadow: var(--glass-shadow);
+            max-width: 600px;
+            width: 100%;
+            text-align: center;
+            animation: welcomeSlideUp 1s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+        }
+
+        @keyframes welcomeSlideUp {
+            from {
+                opacity: 0;
+                transform: translateY(60px) scale(0.9);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0) scale(1);
+            }
+        }
+
+        .welcome-title {
+            font-size: 28px;
+            font-weight: 900;
+            margin-bottom: 20px;
+            background: var(--primary-gradient);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            line-height: 1.2;
+        }
+
+        .welcome-description {
+            font-size: 16px;
+            color: var(--text-secondary);
+            margin-bottom: 30px;
+            line-height: 1.7;
+            max-width: 500px;
+            margin-left: auto;
+            margin-right: auto;
+        }
+
+        .features-showcase {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 16px;
+            margin: 30px 0;
+        }
+
+        .feature-card {
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 16px;
+            padding: 16px;
+            transition: all 0.3s ease;
+            cursor: pointer;
+        }
+
+        .feature-card:hover {
+            background: rgba(255, 255, 255, 0.08);
+            transform: translateY(-4px);
+            box-shadow: 0 12px 30px rgba(0, 0, 0, 0.3);
+        }
+
+        .feature-icon {
+            font-size: 24px;
+            margin-bottom: 12px;
+            display: block;
+        }
+
+        .feature-title {
+            font-size: 14px;
+            font-weight: 600;
+            color: var(--text-primary);
+            margin-bottom: 6px;
+        }
+
+        .feature-description {
+            font-size: 12px;
+            color: var(--text-secondary);
+            line-height: 1.4;
+        }
+
+        .action-buttons {
+            display: flex;
+            gap: 16px;
+            justify-content: center;
+            margin-top: 30px;
+            flex-wrap: wrap;
+        }
+
+        .btn {
+            padding: 12px 24px;
+            border: none;
+            border-radius: 12px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+            position: relative;
+            overflow: hidden;
+            min-width: 120px;
+            font-family: inherit;
+        }
+
+        .btn-primary {
+            background: var(--primary-gradient);
+            color: white;
+            box-shadow: 0 6px 20px rgba(102, 126, 234, 0.4);
+        }
+
+        .btn-secondary {
+            background: var(--glass-bg);
+            border: 1px solid var(--glass-border);
+            color: var(--text-primary);
+            backdrop-filter: blur(20px);
+        }
+
+        .btn:hover {
+            transform: translateY(-2px) scale(1.02);
+        }
+
+        .btn-primary:hover {
+            box-shadow: 0 8px 25px rgba(102, 126, 234, 0.6);
+        }
+
+        .btn-secondary:hover {
+            background: rgba(255, 255, 255, 0.1);
+        }
+
+        /* Settings Panel */
+        .settings-panel {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: var(--glass-bg);
+            border: 1px solid var(--glass-border);
+            border-radius: 20px;
+            padding: 30px;
+            backdrop-filter: blur(30px);
+            box-shadow: var(--glass-shadow);
+            width: 90%;
+            max-width: 400px;
+            display: none;
+            z-index: 6000;
+        }
+
+        .settings-panel.show {
+            display: block;
+            animation: settingsSlideIn 0.5s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+        }
+
+        @keyframes settingsSlideIn {
+            from {
+                opacity: 0;
+                transform: translate(-50%, -50%) scale(0.9);
+            }
+            to {
+                opacity: 1;
+                transform: translate(-50%, -50%) scale(1);
+            }
+        }
+
+        .settings-title {
+            font-size: 20px;
+            font-weight: 700;
+            margin-bottom: 24px;
+            text-align: center;
+            color: var(--text-primary);
+        }
+
+        .setting-group {
+            margin-bottom: 20px;
+        }
+
+        .setting-label {
+            display: block;
+            font-size: 14px;
+            font-weight: 600;
+            color: var(--text-primary);
+            margin-bottom: 8px;
+        }
+
+        .setting-slider {
+            width: 100%;
+            height: 6px;
+            background: var(--glass-bg);
+            border-radius: 3px;
+            outline: none;
+            -webkit-appearance: none;
+            cursor: pointer;
+        }
+
+        .setting-slider::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            width: 20px;
+            height: 20px;
+            background: var(--accent-gradient);
+            border-radius: 50%;
+            cursor: pointer;
+            box-shadow: 0 3px 8px rgba(0, 0, 0, 0.3);
+            transition: all 0.2s ease;
+        }
+
+        .setting-slider::-webkit-slider-thumb:hover {
+            transform: scale(1.1);
+        }
+
+        .close-button {
+            position: absolute;
+            top: 12px;
+            right: 12px;
+            background: none;
+            border: none;
+            color: var(--text-secondary);
+            font-size: 20px;
+            cursor: pointer;
+            width: 32px;
+            height: 32px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 50%;
+            transition: all 0.2s ease;
+        }
+
+        .close-button:hover {
+            background: rgba(255, 255, 255, 0.1);
+            color: var(--text-primary);
+        }
+
+        /* Mobile Controls */
+        .mobile-controls {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 500;
+            display: none;
+        }
+
+        .mobile-controls.active {
+            display: block;
+        }
+
+        .mobile-controls > * {
+            pointer-events: auto;
+        }
+
+        .virtual-joystick {
+            position: absolute;
+            border-radius: 50%;
+            background: var(--glass-bg);
+            border: 2px solid var(--glass-border);
+            backdrop-filter: blur(20px);
+            box-shadow: var(--glass-shadow);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            touch-action: none;
+            user-select: none;
+        }
+
+        .joystick-movement {
+            bottom: 30px;
+            left: 30px;
+            width: 120px;
+            height: 120px;
+        }
+
+        .joystick-camera {
+            bottom: 40px;
+            right: 30px;
+            width: 100px;
+            height: 100px;
+        }
+
+        .joystick-handle {
+            border-radius: 50%;
+            background: var(--accent-gradient);
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.4);
+            transition: transform 0.1s ease;
+            border: 2px solid rgba(255, 255, 255, 0.3);
+        }
+
+        .joystick-movement .joystick-handle {
+            width: 60px;
+            height: 60px;
+        }
+
+        .joystick-camera .joystick-handle {
+            width: 50px;
+            height: 50px;
+        }
+
+        .mobile-action-buttons {
+            position: absolute;
+            right: 30px;
+            bottom: 160px;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .mobile-button {
+            background: var(--glass-bg);
+            border: 2px solid var(--glass-border);
+            border-radius: 12px;
+            padding: 12px 18px;
+            color: var(--text-primary);
+            font-weight: 600;
+            font-size: 12px;
+            backdrop-filter: blur(20px);
+            box-shadow: var(--glass-shadow);
+            transition: all 0.2s ease;
+            min-width: 60px;
+            text-align: center;
+            touch-action: manipulation;
+        }
+
+        .mobile-button:active {
+            transform: scale(0.95);
+            background: var(--accent-gradient);
+            color: white;
+        }
+
+        /* Status Bar */
+        .status-bar {
+            position: absolute;
+            bottom: 15px;
+            left: 15px;
+            background: var(--glass-bg);
+            border: 1px solid var(--glass-border);
+            border-radius: 12px;
+            padding: 12px 18px;
+            backdrop-filter: blur(20px);
+            box-shadow: var(--glass-shadow);
+            font-family: 'Courier New', monospace;
+            font-size: 11px;
+            color: var(--text-accent);
+            display: none;
+        }
+
+        .status-bar.show {
+            display: block;
+            animation: slideInLeft 0.5s ease;
+        }
+
+        @keyframes slideInLeft {
+            from {
+                opacity: 0;
+                transform: translateX(-20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateX(0);
+            }
+        }
+
+        /* Menu Toggle */
+        .menu-toggle {
+            position: absolute;
+            top: 50%;
+            right: 15px;
+            transform: translateY(-50%);
+            background: var(--glass-bg);
+            border: 1px solid var(--glass-border);
+            border-radius: 10px;
+            padding: 10px;
+            color: var(--text-primary);
+            cursor: pointer;
+            backdrop-filter: blur(20px);
+            box-shadow: var(--glass-shadow);
+            transition: all 0.3s ease;
+            display: none;
+            z-index: 2100;
+            pointer-events: auto;
+        }
+
+        .menu-toggle.show {
+            display: block;
+        }
+
+        .menu-toggle:hover {
+            background: rgba(255, 255, 255, 0.1);
+            transform: translateY(-50%) scale(1.1);
+        }
+
+        /* Responsive Design */
+        @media (max-width: 768px) {
+            .header-hud {
+                flex-direction: column;
+                gap: 8px;
+            }
+
+            .welcome-card {
+                padding: 30px 20px;
+                margin: 15px;
+            }
+
+            .welcome-title {
+                font-size: 22px;
+            }
+
+            .welcome-description {
+                font-size: 14px;
+            }
+
+            .features-showcase {
+                grid-template-columns: 1fr 1fr;
+                gap: 12px;
+            }
+
+            .action-buttons {
+                flex-direction: column;
+                align-items: center;
+            }
+
+            .btn {
+                width: 100%;
+                max-width: 200px;
+            }
+
+            .environment-controls {
+                position: fixed;
+                top: auto;
+                bottom: 15px;
+                right: 15px;
+                flex-direction: row;
+                flex-wrap: wrap;
+                max-width: calc(100vw - 30px);
+            }
+
+            .env-button {
+                min-width: auto;
+                padding: 8px 12px;
+                font-size: 10px;
+            }
+
+            .brand-text {
+                font-size: 12px;
+            }
+
+            .performance-monitor {
+                font-size: 10px;
+                padding: 6px 10px;
+                min-width: 120px;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .welcome-card {
+                padding: 25px 15px;
+            }
+
+            .welcome-title {
+                font-size: 20px;
+            }
+
+            .features-showcase {
+                grid-template-columns: 1fr;
+            }
+
+            .brand-container {
+                padding: 8px 12px;
+            }
+
+            .joystick-movement {
+                width: 100px;
+                height: 100px;
+                bottom: 25px;
+                left: 25px;
+            }
+
+            .joystick-camera {
+                width: 80px;
+                height: 80px;
+                bottom: 35px;
+                right: 25px;
+            }
+
+            .mobile-action-buttons {
+                right: 25px;
+                bottom: 130px;
+            }
+
+            .joystick-movement .joystick-handle {
+                width: 50px;
+                height: 50px;
+            }
+
+            .joystick-camera .joystick-handle {
+                width: 40px;
+                height: 40px;
+            }
+        }
+
+        /* Advanced Animations */
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.7; }
+        }
+
+        @keyframes float {
+            0%, 100% { transform: translateY(0px); }
+            50% { transform: translateY(-8px); }
+        }
+
+        @keyframes glow {
+            0%, 100% { box-shadow: 0 0 15px rgba(79, 172, 254, 0.3); }
+            50% { box-shadow: 0 0 30px rgba(79, 172, 254, 0.6); }
+        }
+
+        .pulse { animation: pulse 2s infinite; }
+        .float { animation: float 3s ease-in-out infinite; }
+        .glow { animation: glow 2s ease-in-out infinite; }
+
+        /* Scrollbar Styling */
+        ::-webkit-scrollbar {
+            width: 6px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: var(--glass-bg);
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: var(--accent-gradient);
+            border-radius: 3px;
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: var(--primary-gradient);
+        }
+
+        /* UI Interaction Fix */
+        .ui-interactive {
+            pointer-events: auto !important;
+            z-index: 2000 !important;
+        }
+
+        .ui-blocked {
+            pointer-events: none !important;
+        }
+    </style>
+
+    <script type="importmap">
+    {
+        "imports": {
+            "three": "https://unpkg.com/three@0.160.0/build/three.module.js",
+            "three/addons/": "https://unpkg.com/three@0.160.0/examples/jsm/"
+        }
     }
-
-    *{box-sizing:border-box}
-    html,body{height:100%;width:100%;margin:0;padding:0;background:var(--bg);font-family:'Cairo',system-ui,Segoe UI,Roboto,Arial;color:var(--text);-webkit-font-smoothing:antialiased}
-
-    /* Canvas container stretches but respects safe-area on iOS */
-    #app{position:fixed;inset:0;padding-top:var(--safe-top);}
-    canvas{display:block;width:100%;height:100%;touch-action:none}
-
-    /* Lightweight, mobile-first UI */
-    .ui-overlay{position:fixed;inset:0;pointer-events:none;z-index:40}
-    .ui-overlay>*{pointer-events:auto}
-
-    .top-bar{position:fixed;top:10px;left:10px;right:10px;display:flex;justify-content:space-between;gap:12px;align-items:center}
-    .brand{background:var(--glass);border:1px solid var(--glass-border);padding:8px 12px;border-radius:10px;display:flex;gap:8px;align-items:center}
-    .brand .logo{width:36px;height:36px;border-radius:8px;background:var(--accent);display:flex;align-items:center;justify-content:center;font-weight:900}
-    .brand .title{font-weight:700}
-
-    .controls{position:fixed;right:12px;top:12px;display:flex;gap:8px;flex-wrap:wrap}
-    .btn{background:var(--glass);border:1px solid var(--glass-border);padding:8px 12px;border-radius:10px;font-weight:600}
-    .btn.primary{background:linear-gradient(135deg,#4facfe,#00f2fe);color:#05263b}
-
-    /* Welcome modal (centered) */
-    .welcome{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;padding:18px;z-index:60}
-    .welcome .card{max-width:640px;width:100%;background:rgba(255,255,255,0.03);border:1px solid var(--glass-border);padding:20px;border-radius:14px;text-align:center}
-    .features{display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:10px;margin-top:14px}
-
-    /* Mobile controls: joystick & action buttons */
-    .mobile-controls{position:fixed;inset:0;z-index:50;pointer-events:none}
-    .mobile-controls.active{pointer-events:auto}
-    .joystick{position:absolute;bottom:24px;left:18px;width:100px;height:100px;border-radius:50%;background:var(--glass);display:flex;align-items:center;justify-content:center;border:1px solid var(--glass-border)}
-    .joystick .handle{width:48px;height:48px;border-radius:50%;background:linear-gradient(135deg,#4facfe,#00f2fe)}
-    .actions{position:absolute;right:18px;bottom:24px;display:flex;flex-direction:column;gap:8px}
-    .actions .action{min-width:64px;padding:10px;border-radius:10px;background:var(--glass);border:1px solid var(--glass-border);text-align:center}
-
-    /* status & performance - small and unobtrusive */
-    .status{position:fixed;left:12px;bottom:12px;background:rgba(0,0,0,0.4);padding:8px 10px;border-radius:10px;font-family:monospace;font-size:12px}
-
-    /* responsive tweaks */
-    @media (max-width:768px){
-      .welcome .card{padding:14px}
-      .brand .title{font-size:13px}
-      .joystick{width:92px;height:92px}
-      .joystick .handle{width:44px;height:44px}
-    }
-
-    @media (max-width:420px){
-      .brand .title{display:none}
-      .controls{right:8px;top:8px}
-    }
-  </style>
-
-  <script type="importmap">
-  {
-    "imports":{
-      "three":"https://unpkg.com/three@0.160.0/build/three.module.js",
-      "three/addons/":"https://unpkg.com/three@0.160.0/examples/jsm/"
-    }
-  }
-  </script>
+    </script>
 </head>
 <body>
-  <div id="app"></div>
-
-  <div class="ui-overlay">
-    <div class="top-bar">
-      <div class="brand"><div class="logo">NAJ</div><div class="title">نجوم الجزيرة - المعرض الافتراضي</div></div>
-      <div class="controls">
-        <button class="btn" id="openSettings">الإعدادات</button>
-        <button class="btn primary" id="enterExperience">دخول</button>
-      </div>
-    </div>
-
-    <div class="welcome" id="welcomeScreen">
-      <div class="card">
-        <h2>مرحباً بك في معرض نجوم الجزيرة</h2>
-        <p>نسخة محسّنة للجوال — أداء أسرع، إعدادات أوتوماتيكية للأجهزة المحمولة، وتحكم لمسي مريح.</p>
-        <div class="features">
-          <div>تحكم لمسي ذكي</div>
-          <div>جودة متغيرة حسب الجهاز</div>
-          <div>تحميل تدريجي للنماذج</div>
-          <div>واجهة مخصّصة للموبايل</div>
+    <!-- Advanced Loading Screen -->
+    <div class="loading-screen" id="loadingScreen">
+        <div class="loading-logo">
+            <span>NAJ</span>
         </div>
-        <div style="margin-top:14px;display:flex;gap:8px;justify-content:center">
-          <button class="btn primary" id="welcomeEnter">ابدأ الآن</button>
-          <button class="btn" id="welcomeSettings">تعديل الإعدادات</button>
+        <div class="loading-title">معرض نجوم الجزيرة الافتراضي</div>
+        <div class="loading-subtitle">
+            تجربة واقعية فائقة الاحترافية مع أحدث تقنيات الرسوميات ثلاثية الأبعاد
         </div>
-      </div>
+        <div class="loading-progress-container">
+            <div class="loading-progress" id="loadingProgress"></div>
+        </div>
+        <div class="loading-percentage" id="loadingPercentage">0%</div>
     </div>
 
-    <div class="mobile-controls" id="mobileControls">
-      <div class="joystick" id="movementJoystick"><div class="handle" id="movementHandle"></div></div>
-      <div class="actions"><div class="action" id="jumpBtn">قفز</div><div class="action" id="runBtn">ركض</div></div>
+    <!-- 3D Canvas Container -->
+    <div id="app"></div>
+
+    <!-- Advanced UI Overlay -->
+    <div class="ui-overlay">
+        <!-- Header HUD -->
+        <div class="header-hud">
+            <div class="brand-container">
+                <div class="brand-icon">NAJ</div>
+                <div class="brand-text">نجوم الجزيرة - المعرض الافتراضي</div>
+            </div>
+            <div class="performance-monitor" id="performanceMonitor">
+                <div>FPS: <span id="fpsCounter">60</span></div>
+                <div>Memory: <span id="memoryUsage">0 MB</span></div>
+                <div>Triangles: <span id="triangleCount">0</span></div>
+            </div>
+        </div>
+
+        <!-- Environment Controls -->
+        <div class="environment-controls ui-interactive" id="environmentControls" style="display: none;">
+            <div class="env-button active" data-env="showroom">🏢 معرض</div>
+            <div class="env-button" data-env="studio">💡 استوديو</div>
+            <div class="env-button" data-env="desert">🏜️ صحراء</div>
+            <div class="env-button" data-env="city">🏙️ مدينة</div>
+            <div class="env-button" data-env="night">🌙 ليل</div>
+            <div class="env-button" data-env="forest">🌲 غابة</div>
+        </div>
+
+        <!-- Menu Toggle Button -->
+        <div class="menu-toggle ui-interactive" id="menuToggle">☰</div>
+
+        <!-- Welcome Screen -->
+        <div class="welcome-screen ui-interactive" id="welcomeScreen">
+            <div class="welcome-card">
+                <h1 class="welcome-title">مرحباً بك في معرض نجوم الجزيرة الافتراضي</h1>
+                <p class="welcome-description">
+                    استكشف مجموعتنا الحصرية من السيارات في بيئة ثلاثية الأبعاد فائقة الواقعية. 
+                    تجول بحرية في بيئات متنوعة واكتشف كل التفاصيل مع تقنيات الإضاءة والعرض المتقدمة.
+                </p>
+                
+                <div class="features-showcase">
+                    <div class="feature-card">
+                        <div class="feature-icon">🎮</div>
+                        <div class="feature-title">تحكم متقدم</div>
+                        <div class="feature-description">نظام تحكم احترافي يدعم جميع الأجهزة</div>
+                    </div>
+                    <div class="feature-card">
+                        <div class="feature-icon">🌍</div>
+                        <div class="feature-title">بيئات واقعية</div>
+                        <div class="feature-description">6 بيئات مختلفة بإضاءة فيزيائية دقيقة</div>
+                    </div>
+                    <div class="feature-card">
+                        <div class="feature-icon">✨</div>
+                        <div class="feature-title">جرافيك متقدم</div>
+                        <div class="feature-description">تقنيات PBR وإضاءة عالمية</div>
+                    </div>
+                    <div class="feature-card">
+                        <div class="feature-icon">📱</div>
+                        <div class="feature-title">متوافق تماماً</div>
+                        <div class="feature-description">يعمل بسلاسة على جميع الأجهزة</div>
+                    </div>
+                </div>
+
+                <div class="action-buttons">
+                    <button class="btn btn-primary" id="enterExperience">دخول التجربة</button>
+                    <button class="btn btn-secondary" id="openSettings">الإعدادات</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Advanced Settings Panel -->
+        <div class="settings-panel ui-interactive" id="settingsPanel">
+            <button class="close-button" id="closeSettings">×</button>
+            <h2 class="settings-title">إعدادات التجربة المتقدمة</h2>
+            
+            <div class="setting-group">
+                <label class="setting-label">حساسية الماوس: <span id="mouseSensitivityValue">2.0</span></label>
+                <input type="range" class="setting-slider" id="mouseSensitivitySlider" min="0.5" max="5.0" step="0.1" value="2.0">
+            </div>
+            
+            <div class="setting-group">
+                <label class="setting-label">سرعة الحركة: <span id="moveSpeedValue">10.0</span></label>
+                <input type="range" class="setting-slider" id="moveSpeedSlider" min="3.0" max="20.0" step="0.5" value="10.0">
+            </div>
+            
+            <div class="setting-group">
+                <label class="setting-label">قوة القفز: <span id="jumpForceValue">18.0</span></label>
+                <input type="range" class="setting-slider" id="jumpForceSlider" min="8.0" max="30.0" step="1.0" value="18.0">
+            </div>
+            
+            <div class="setting-group">
+                <label class="setting-label">جودة الظلال: <span id="shadowQualityValue">عالية</span></label>
+                <input type="range" class="setting-slider" id="shadowQualitySlider" min="0" max="3" step="1" value="2">
+            </div>
+            
+            <div class="setting-group">
+                <label class="setting-label">تأثيرات ما بعد المعالجة: <span id="postProcessingValue">مفعلة</span></label>
+                <input type="range" class="setting-slider" id="postProcessingSlider" min="0" max="1" step="1" value="1">
+            </div>
+        </div>
+
+        <!-- Status Bar -->
+        <div class="status-bar" id="statusBar">
+            <div>الموضع: <span id="positionDisplay">0, 0, 0</span></div>
+            <div>البيئة: <span id="currentEnvironment">معرض</span></div>
+            <div>الكاميرا: <span id="cameraInfo">0°, 0°</span></div>
+        </div>
     </div>
 
-    <div class="status" id="statusBar">FPS: <span id="fps">0</span></div>
-  </div>
+    <!-- Mobile Controls -->
+    <div class="mobile-controls ui-interactive" id="mobileControls">
+        <div class="virtual-joystick joystick-movement" id="movementJoystick">
+            <div class="joystick-handle" id="movementHandle"></div>
+        </div>
+        <div class="virtual-joystick joystick-camera" id="cameraJoystick">
+            <div class="joystick-handle" id="cameraHandle"></div>
+        </div>
+        <div class="mobile-action-buttons">
+            <div class="mobile-button" id="jumpButton">قفز</div>
+            <div class="mobile-button" id="runButton">ركض</div>
+            <div class="mobile-button" id="menuButton">قائمة</div>
+        </div>
+    </div>
 
-  <script type="module">
-    import * as THREE from 'three';
-    import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
-    import { DRACOLoader } from 'three/addons/loaders/DRACOLoader.js';
-    import { PointerLockControls } from 'three/addons/controls/PointerLockControls.js';
+    <script type="module">
+        import * as THREE from 'three';
+        import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
+        import { DRACOLoader } from 'three/addons/loaders/DRACOLoader.js';
+        import { RGBELoader } from 'three/addons/loaders/RGBELoader.js';
+        import { PointerLockControls } from 'three/addons/controls/PointerLockControls.js';
+        import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js';
+        import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
+        import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js';
+        import { SSAOPass } from 'three/addons/postprocessing/SSAOPass.js';
+        import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
 
-    // Simple, pragmatic config with mobile-first handling
-    const CONFIG = {
-      MODEL_URL: 'https://raw.githubusercontent.com/kanawattown-a11y/12/f91219369eb76bb2e445f95abaa61860e3b886dd/naj.glb',
-      MAX_PIXEL_RATIO_DESKTOP: 2,
-      MAX_PIXEL_RATIO_MOBILE: 1,
-      SHADOW_MAP_SIZE_DESKTOP: 2048,
-      SHADOW_MAP_SIZE_MOBILE: 512,
-      TOUCH_SENS: 1.5
-    };
+        // ==================== FIXED ULTRA PROFESSIONAL 3D SHOWROOM ====================
+        // Advanced Configuration System with Fixed Settings
+        const ULTRA_CONFIG = {
+            // Model Configuration
+            MODEL: {
+                URL: 'https://raw.githubusercontent.com/kanawattown-a11y/12/f91219369eb76bb2e445f95abaa61860e3b886dd/naj.glb',
+                SCALE: 1.0,
+                POSITION: { x: 0, y: 0, z: 0 }
+            },
 
-    const IS_MOBILE = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) || (navigator.maxTouchPoints && navigator.maxTouchPoints>1);
+            // Advanced Physics System
+            PHYSICS: {
+                GRAVITY: 30.0,
+                MOVE_SPEED: 10.0,
+                RUN_MULTIPLIER: 2.8,
+                JUMP_FORCE: 18.0,
+                AIR_CONTROL: 0.3,
+                GROUND_FRICTION: 0.85,
+                AIR_FRICTION: 0.98,
+                EYE_HEIGHT: 1.8,
+                PLAYER_RADIUS: 0.5,
+                COLLISION_MARGIN: 0.02
+            },
 
-    // Core three.js setup
-    const container = document.getElementById('app');
-    const renderer = new THREE.WebGLRenderer({antialias: !IS_MOBILE, alpha:false});
-    const DPR = IS_MOBILE ? Math.min(window.devicePixelRatio || 1, CONFIG.MAX_PIXEL_RATIO_MOBILE) : Math.min(window.devicePixelRatio || 1, CONFIG.MAX_PIXEL_RATIO_DESKTOP);
-    renderer.setPixelRatio(DPR);
-    renderer.setSize(window.innerWidth, window.innerHeight);
-    renderer.outputColorSpace = THREE.SRGBColorSpace;
-    renderer.shadowMap.enabled = true;
-    renderer.shadowMap.type = THREE.PCFSoftShadowMap;
-    container.appendChild(renderer.domElement);
+            // Advanced Controls
+            CONTROLS: {
+                MOUSE_SENSITIVITY: 2.0,
+                TOUCH_SENSITIVITY: 1.5,
+                JOYSTICK_DEADZONE: 0.1,
+                POINTER_LOCK_ENABLED: true,
+                INVERT_Y: false
+            },
 
-    const scene = new THREE.Scene();
-    scene.background = new THREE.Color(0x0b1220);
+            // Ultra Performance Settings
+            PERFORMANCE: {
+                MAX_PIXEL_RATIO: Math.min(window.devicePixelRatio, 2),
+                SHADOW_MAP_SIZE: 2048,
+                LOD_DISTANCES: [50, 100, 200],
+                FRUSTUM_CULLING: true,
+                OCCLUSION_CULLING: false
+            },
 
-    const camera = new THREE.PerspectiveCamera(75, window.innerWidth/window.innerHeight, 0.1, 2000);
-    camera.position.set(0,1.6,3);
+            // Advanced Rendering with Fixed Lighting
+            RENDERING: {
+                TONE_MAPPING: THREE.ACESFilmicToneMapping,
+                TONE_MAPPING_EXPOSURE: 0.8, // Reduced from 1.0 to fix brightness
+                OUTPUT_COLOR_SPACE: THREE.SRGBColorSpace,
+                SHADOW_TYPE: THREE.PCFSoftShadowMap,
+                ANTIALIAS: true,
+                ALPHA: false,
+                POWER_PREFERENCE: 'high-performance'
+            },
 
-    // Lights
-    const hemi = new THREE.HemisphereLight(0xffffff,0x444444,0.4);
-    scene.add(hemi);
-    const dir = new THREE.DirectionalLight(0xffffff,1.0);
-    dir.position.set(20,40,20);
-    dir.castShadow = true;
-    const mapSize = IS_MOBILE?CONFIG.SHADOW_MAP_SIZE_MOBILE:CONFIG.SHADOW_MAP_SIZE_DESKTOP;
-    dir.shadow.mapSize.set(mapSize,mapSize);
-    scene.add(dir);
+            // Fixed Ultra-Realistic Environments with Proper Lighting
+            ENVIRONMENTS: {
+                showroom: {
+                    name: 'معرض',
+                    hdri: null, // Use procedural lighting instead of HDRI for better control
+                    background: new THREE.Color(0x404040), // Darker background
+                    fog: { color: 0x404040, near: 50, far: 300 },
+                    ambientIntensity: 0.3, // Reduced ambient light
+                    directionalIntensity: 1.2, // Reduced directional light
+                    exposure: 0.6, // Much lower exposure
+                    environmentIntensity: 0.8
+                },
+                studio: {
+                    name: 'استوديو',
+                    hdri: null,
+                    background: new THREE.Color(0xf0f0f0),
+                    fog: { color: 0xf0f0f0, near: 30, far: 200 },
+                    ambientIntensity: 0.4,
+                    directionalIntensity: 1.5,
+                    exposure: 0.9,
+                    environmentIntensity: 1.0
+                },
+                desert: {
+                    name: 'صحراء',
+                    hdri: null,
+                    background: new THREE.Color(0xffd89b),
+                    fog: { color: 0xffd89b, near: 100, far: 800 },
+                    ambientIntensity: 0.6,
+                    directionalIntensity: 2.0,
+                    exposure: 1.1,
+                    environmentIntensity: 1.2
+                },
+                city: {
+                    name: 'مدينة',
+                    hdri: null,
+                    background: new THREE.Color(0x87ceeb),
+                    fog: { color: 0x87ceeb, near: 80, far: 600 },
+                    ambientIntensity: 0.4,
+                    directionalIntensity: 1.8,
+                    exposure: 0.8,
+                    environmentIntensity: 1.0
+                },
+                night: {
+                    name: 'ليل',
+                    hdri: null,
+                    background: new THREE.Color(0x0a0a1a),
+                    fog: { color: 0x0a0a1a, near: 40, far: 250 },
+                    ambientIntensity: 0.1,
+                    directionalIntensity: 0.3,
+                    exposure: 0.4,
+                    environmentIntensity: 0.5
+                },
+                forest: {
+                    name: 'غابة',
+                    hdri: null,
+                    background: new THREE.Color(0x2d4a2d),
+                    fog: { color: 0x2d4a2d, near: 60, far: 400 },
+                    ambientIntensity: 0.2,
+                    directionalIntensity: 1.0,
+                    exposure: 0.7,
+                    environmentIntensity: 0.8
+                }
+            },
 
-    // Ground (cheap) that receives shadow
-    const ground = new THREE.Mesh(new THREE.PlaneGeometry(1000,1000), new THREE.MeshStandardMaterial({color:0x2d2f36,roughness:0.9,metalness:0.0}));
-    ground.rotation.x = -Math.PI/2;
-    ground.receiveShadow = true;
-    scene.add(ground);
+            // Device Detection with Better Mobile Support
+            IS_MOBILE: /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) || 
+                      (navigator.maxTouchPoints && navigator.maxTouchPoints > 2),
+            IS_TOUCH: 'ontouchstart' in window || navigator.maxTouchPoints > 0
+        };
 
-    // Loaders with DRACO for compressed glb
-    const loadingManager = new THREE.LoadingManager();
-    const draco = new DRACOLoader(loadingManager);
-    draco.setDecoderPath('https://www.gstatic.com/draco/v1/decoders/');
-    const gltfLoader = new GLTFLoader(loadingManager);
-    gltfLoader.setDRACOLoader(draco);
+        // ==================== FIXED ULTRA PROFESSIONAL APPLICATION CLASS ====================
+        class FixedUltraProfessional3DShowroom {
+            constructor() {
+                this.initializeCore();
+                this.initializeState();
+                this.initializeLoaders();
+                this.initializeScene();
+                this.initializeRenderer();
+                this.initializeCamera();
+                this.initializeControls();
+                this.initializeLighting();
+                this.initializePhysics();
+                this.initializePostProcessing();
+                this.initializeUI();
+                this.initializePerformanceMonitor();
+                this.bindEvents();
+                this.startLoadingSequence();
+            }
 
-    // Lightweight progressive loading: first low LOD mesh (if available), then full model
-    function loadModel(url){
-      return new Promise((resolve,reject)=>{
-        gltfLoader.load(url, gltf=>resolve(gltf), xhr=>{
-          const el = document.getElementById('statusBar');
-          if(el){el.textContent = 'تحميل: ' + Math.round((xhr.loaded/xhr.total||0)*100) + '%';}
-        }, reject);
-      });
-    }
+            initializeCore() {
+                this.container = document.getElementById('app');
+                this.clock = new THREE.Clock();
+                this.loadingManager = new THREE.LoadingManager();
+                this.textureLoader = new THREE.TextureLoader(this.loadingManager);
+                
+                // Performance monitoring
+                this.stats = {
+                    fps: 0,
+                    frameCount: 0,
+                    lastTime: performance.now(),
+                    memoryUsage: 0,
+                    triangleCount: 0
+                };
 
-    let car = null;
-    loadingManager.onLoad = ()=>{
-      // hide welcome
-      document.getElementById('welcomeScreen').style.display = 'none';
-      if(IS_MOBILE) document.getElementById('mobileControls').classList.add('active');
-    };
+                // UI interaction state
+                this.uiInteractionMode = false;
+            }
 
-    // Material fixer: ensure standard PBR and clamp heavy maps
-    function fixMaterial(mesh){
-      if(mesh.isMesh){
-        let mat = mesh.material;
-        if(!mat) return;
-        if(!mat.isMeshStandardMaterial && !mat.isMeshPhysicalMaterial){
-          mesh.material = new THREE.MeshStandardMaterial({map:mat.map,color:mat.color});
+            initializeState() {
+                this.gameState = {
+                    isPlaying: false,
+                    canJump: false,
+                    isRunning: false,
+                    currentEnvironment: 'showroom',
+                    playerPosition: new THREE.Vector3(0, ULTRA_CONFIG.PHYSICS.EYE_HEIGHT, 5),
+                    playerVelocity: new THREE.Vector3(),
+                    cameraRotation: { yaw: 0, pitch: 0 },
+                    settings: {
+                        mouseSensitivity: ULTRA_CONFIG.CONTROLS.MOUSE_SENSITIVITY,
+                        moveSpeed: ULTRA_CONFIG.PHYSICS.MOVE_SPEED,
+                        jumpForce: ULTRA_CONFIG.PHYSICS.JUMP_FORCE,
+                        shadowQuality: 2,
+                        postProcessing: true
+                    }
+                };
+
+                // Input state
+                this.inputState = {
+                    keys: {
+                        forward: false, backward: false, left: false, right: false,
+                        run: false, jump: false
+                    },
+                    mouse: { x: 0, y: 0, deltaX: 0, deltaY: 0 },
+                    touch: {
+                        movement: { x: 0, y: 0 },
+                        camera: { x: 0, y: 0 }
+                    }
+                };
+
+                // Environment cache
+                this.environmentCache = new Map();
+                this.modelCache = new Map();
+            }
+
+            initializeLoaders() {
+                // Advanced DRACO loader
+                this.dracoLoader = new DRACOLoader(this.loadingManager);
+                this.dracoLoader.setDecoderPath('https://www.gstatic.com/draco/v1/decoders/');
+                this.dracoLoader.preload();
+
+                // Advanced GLTF loader
+                this.gltfLoader = new GLTFLoader(this.loadingManager);
+                this.gltfLoader.setDRACOLoader(this.dracoLoader);
+
+                // Loading progress tracking
+                this.loadingManager.onProgress = (url, loaded, total) => {
+                    const progress = (loaded / total) * 100;
+                    this.updateLoadingProgress(progress);
+                };
+
+                this.loadingManager.onLoad = () => {
+                    setTimeout(() => this.finishLoading(), 1000);
+                };
+
+                this.loadingManager.onError = (url) => {
+                    console.error('Loading error:', url);
+                };
+            }
+
+            initializeScene() {
+                this.scene = new THREE.Scene();
+                this.scene.background = ULTRA_CONFIG.ENVIRONMENTS.showroom.background;
+                this.scene.fog = new THREE.Fog(
+                    ULTRA_CONFIG.ENVIRONMENTS.showroom.fog.color,
+                    ULTRA_CONFIG.ENVIRONMENTS.showroom.fog.near,
+                    ULTRA_CONFIG.ENVIRONMENTS.showroom.fog.far
+                );
+            }
+
+            initializeRenderer() {
+                this.renderer = new THREE.WebGLRenderer({
+                    antialias: ULTRA_CONFIG.RENDERING.ANTIALIAS,
+                    alpha: ULTRA_CONFIG.RENDERING.ALPHA,
+                    powerPreference: ULTRA_CONFIG.RENDERING.POWER_PREFERENCE,
+                    stencil: false,
+                    depth: true
+                });
+
+                this.renderer.setPixelRatio(ULTRA_CONFIG.PERFORMANCE.MAX_PIXEL_RATIO);
+                this.renderer.setSize(window.innerWidth, window.innerHeight);
+                this.renderer.outputColorSpace = ULTRA_CONFIG.RENDERING.OUTPUT_COLOR_SPACE;
+                
+                // Advanced shadow settings
+                this.renderer.shadowMap.enabled = true;
+                this.renderer.shadowMap.type = ULTRA_CONFIG.RENDERING.SHADOW_TYPE;
+                this.renderer.shadowMap.autoUpdate = true;
+                
+                // Fixed tone mapping with proper exposure
+                this.renderer.toneMapping = ULTRA_CONFIG.RENDERING.TONE_MAPPING;
+                this.renderer.toneMappingExposure = ULTRA_CONFIG.RENDERING.TONE_MAPPING_EXPOSURE;
+                
+                // Performance optimizations
+                this.renderer.info.autoReset = false;
+                
+                this.container.appendChild(this.renderer.domElement);
+            }
+
+            initializeCamera() {
+                this.camera = new THREE.PerspectiveCamera(
+                    75,
+                    window.innerWidth / window.innerHeight,
+                    0.1,
+                    2000
+                );
+                this.camera.position.copy(this.gameState.playerPosition);
+            }
+
+            initializeControls() {
+                if (!ULTRA_CONFIG.IS_MOBILE && ULTRA_CONFIG.CONTROLS.POINTER_LOCK_ENABLED) {
+                    this.pointerLockControls = new PointerLockControls(this.camera, this.renderer.domElement);
+                    this.scene.add(this.pointerLockControls.getObject());
+
+                    this.pointerLockControls.addEventListener('lock', () => {
+                        this.gameState.isPlaying = true;
+                        this.uiInteractionMode = false;
+                        this.showGameUI();
+                    });
+
+                    this.pointerLockControls.addEventListener('unlock', () => {
+                        this.gameState.isPlaying = false;
+                        this.uiInteractionMode = true;
+                        // Don't automatically show welcome screen, let user control it
+                    });
+                }
+            }
+
+            initializeLighting() {
+                // Fixed ambient lighting - much lower intensity
+                this.ambientLight = new THREE.AmbientLight(0xffffff, 0.3);
+                this.scene.add(this.ambientLight);
+
+                // Fixed hemisphere lighting
+                this.hemisphereLight = new THREE.HemisphereLight(0x87CEEB, 0x362d1d, 0.4);
+                this.hemisphereLight.position.set(0, 50, 0);
+                this.scene.add(this.hemisphereLight);
+
+                // Fixed main directional light with proper intensity
+                this.directionalLight = new THREE.DirectionalLight(0xffffff, 1.2);
+                this.directionalLight.position.set(100, 200, 100);
+                this.directionalLight.castShadow = true;
+                
+                // Optimized shadow camera settings
+                const shadowCamera = this.directionalLight.shadow.camera;
+                shadowCamera.near = 1;
+                shadowCamera.far = 500;
+                shadowCamera.left = -150;
+                shadowCamera.right = 150;
+                shadowCamera.top = 150;
+                shadowCamera.bottom = -150;
+                
+                this.directionalLight.shadow.mapSize.setScalar(ULTRA_CONFIG.PERFORMANCE.SHADOW_MAP_SIZE);
+                this.directionalLight.shadow.bias = -0.0001;
+                this.directionalLight.shadow.normalBias = 0.02;
+                this.directionalLight.shadow.radius = 4;
+                
+                this.scene.add(this.directionalLight);
+
+                // Additional professional lighting setup with fixed intensities
+                this.setupAdvancedLighting();
+            }
+
+            setupAdvancedLighting() {
+                // Key light (main) - reduced intensity
+                this.keyLight = new THREE.SpotLight(0xffffff, 1.0, 200, Math.PI / 6, 0.3);
+                this.keyLight.position.set(-80, 60, 80);
+                this.keyLight.target.position.set(0, 0, 0);
+                this.keyLight.castShadow = true;
+                this.keyLight.shadow.mapSize.setScalar(1024);
+                this.keyLight.shadow.camera.near = 1;
+                this.keyLight.shadow.camera.far = 200;
+                this.scene.add(this.keyLight);
+                this.scene.add(this.keyLight.target);
+
+                // Fill light - reduced intensity
+                this.fillLight = new THREE.PointLight(0x87ceeb, 0.6, 150);
+                this.fillLight.position.set(60, 40, -60);
+                this.fillLight.castShadow = true;
+                this.fillLight.shadow.mapSize.setScalar(512);
+                this.scene.add(this.fillLight);
+
+                // Rim light - reduced intensity
+                this.rimLight = new THREE.SpotLight(0xffd700, 0.8, 180, Math.PI / 4, 0.2);
+                this.rimLight.position.set(0, 80, -100);
+                this.rimLight.target.position.set(0, 0, 0);
+                this.rimLight.castShadow = true;
+                this.rimLight.shadow.mapSize.setScalar(512);
+                this.scene.add(this.rimLight);
+                this.scene.add(this.rimLight.target);
+
+                // Accent lights - reduced intensity
+                this.accentLights = [];
+                const accentPositions = [
+                    { pos: [-40, 20, 40], color: 0xff6b6b, intensity: 0.4 },
+                    { pos: [40, 20, 40], color: 0x4ecdc4, intensity: 0.4 },
+                    { pos: [0, 20, -40], color: 0xffe66d, intensity: 0.3 }
+                ];
+
+                accentPositions.forEach(({ pos, color, intensity }) => {
+                    const light = new THREE.PointLight(color, intensity, 80);
+                    light.position.set(...pos);
+                    this.accentLights.push(light);
+                    this.scene.add(light);
+                });
+            }
+
+            initializePhysics() {
+                // Advanced collision detection system
+                this.collisionBoxes = [];
+                this.groundLevel = 0;
+                
+                // Create ultra-realistic ground
+                this.createAdvancedGround();
+            }
+
+            createAdvancedGround() {
+                const groundGeometry = new THREE.PlaneGeometry(2000, 2000, 200, 200);
+                
+                // Advanced ground material with PBR
+                const groundMaterial = new THREE.MeshStandardMaterial({
+                    color: 0x606060,
+                    roughness: 0.8,
+                    metalness: 0.1
+                });
+
+                // Create realistic terrain displacement
+                const positions = groundGeometry.attributes.position;
+                for (let i = 0; i < positions.count; i++) {
+                    const x = positions.getX(i);
+                    const z = positions.getZ(i);
+                    
+                    // Multi-octave noise for realistic terrain
+                    const y = Math.sin(x * 0.005) * Math.cos(z * 0.005) * 1.0 +
+                             Math.sin(x * 0.02) * Math.cos(z * 0.02) * 0.4 +
+                             Math.sin(x * 0.05) * Math.cos(z * 0.05) * 0.15;
+                    
+                    positions.setY(i, y);
+                }
+                
+                groundGeometry.computeVertexNormals();
+                
+                this.ground = new THREE.Mesh(groundGeometry, groundMaterial);
+                this.ground.rotation.x = -Math.PI / 2;
+                this.ground.receiveShadow = true;
+                this.scene.add(this.ground);
+            }
+
+            initializePostProcessing() {
+                if (!this.gameState.settings.postProcessing) return;
+
+                this.composer = new EffectComposer(this.renderer);
+                
+                // Main render pass
+                this.renderPass = new RenderPass(this.scene, this.camera);
+                this.composer.addPass(this.renderPass);
+
+                // Subtle SSAO
+                this.ssaoPass = new SSAOPass(this.scene, this.camera, window.innerWidth, window.innerHeight);
+                this.ssaoPass.kernelRadius = 8;
+                this.ssaoPass.minDistance = 0.005;
+                this.ssaoPass.maxDistance = 0.1;
+                this.ssaoPass.output = SSAOPass.OUTPUT.SSAO;
+                this.composer.addPass(this.ssaoPass);
+
+                // Subtle Bloom
+                this.bloomPass = new UnrealBloomPass(
+                    new THREE.Vector2(window.innerWidth, window.innerHeight),
+                    0.8,  // reduced strength
+                    0.4,  // radius
+                    0.9   // higher threshold
+                );
+                this.composer.addPass(this.bloomPass);
+
+                // Output pass
+                this.outputPass = new OutputPass();
+                this.composer.addPass(this.outputPass);
+            }
+
+            initializeUI() {
+                this.setupSettingsPanel();
+                this.setupMobileControls();
+                this.setupUIInteraction();
+            }
+
+            setupUIInteraction() {
+                // Fixed UI interaction system
+                const uiElements = document.querySelectorAll('.ui-interactive');
+                
+                uiElements.forEach(element => {
+                    element.addEventListener('mouseenter', () => {
+                        if (this.pointerLockControls && this.pointerLockControls.isLocked) {
+                            this.pointerLockControls.unlock();
+                        }
+                    });
+                });
+
+                // Auto-lock when clicking on canvas (not UI)
+                this.renderer.domElement.addEventListener('click', (e) => {
+                    if (!this.uiInteractionMode && !ULTRA_CONFIG.IS_MOBILE) {
+                        if (this.pointerLockControls && !this.pointerLockControls.isLocked) {
+                            this.pointerLockControls.lock();
+                        }
+                    }
+                });
+            }
+
+            setupSettingsPanel() {
+                const sliders = [
+                    { id: 'mouseSensitivitySlider', valueId: 'mouseSensitivityValue', property: 'mouseSensitivity' },
+                    { id: 'moveSpeedSlider', valueId: 'moveSpeedValue', property: 'moveSpeed' },
+                    { id: 'jumpForceSlider', valueId: 'jumpForceValue', property: 'jumpForce' }
+                ];
+
+                sliders.forEach(({ id, valueId, property }) => {
+                    const slider = document.getElementById(id);
+                    const valueDisplay = document.getElementById(valueId);
+                    
+                    if (slider && valueDisplay) {
+                        slider.addEventListener('input', (e) => {
+                            const value = parseFloat(e.target.value);
+                            this.gameState.settings[property] = value;
+                            valueDisplay.textContent = value.toFixed(1);
+                        });
+                    }
+                });
+
+                // Shadow quality
+                const shadowSlider = document.getElementById('shadowQualitySlider');
+                if (shadowSlider) {
+                    shadowSlider.addEventListener('input', (e) => {
+                        const quality = parseInt(e.target.value);
+                        this.gameState.settings.shadowQuality = quality;
+                        this.updateShadowQuality(quality);
+                    });
+                }
+
+                // Post-processing toggle
+                const postSlider = document.getElementById('postProcessingSlider');
+                if (postSlider) {
+                    postSlider.addEventListener('input', (e) => {
+                        const enabled = parseInt(e.target.value) === 1;
+                        this.gameState.settings.postProcessing = enabled;
+                        this.togglePostProcessing(enabled);
+                    });
+                }
+            }
+
+            setupMobileControls() {
+                if (!ULTRA_CONFIG.IS_MOBILE) return;
+
+                this.setupVirtualJoystick('movementJoystick', 'movementHandle', (x, y) => {
+                    this.inputState.touch.movement.x = x;
+                    this.inputState.touch.movement.y = -y;
+                });
+
+                this.setupVirtualJoystick('cameraJoystick', 'cameraHandle', (x, y) => {
+                    this.inputState.touch.camera.x = -x * 4;
+                    this.inputState.touch.camera.y = -y * 4;
+                });
+
+                // Mobile buttons
+                this.setupMobileButton('jumpButton', () => this.jump());
+                this.setupMobileButton('runButton', (pressed) => this.inputState.keys.run = pressed);
+                this.setupMobileButton('menuButton', () => this.toggleMenu());
+            }
+
+            setupVirtualJoystick(containerId, handleId, onMove) {
+                const container = document.getElementById(containerId);
+                const handle = document.getElementById(handleId);
+                if (!container || !handle) return;
+
+                let isActive = false;
+                let startPos = { x: 0, y: 0 };
+                const maxDistance = container.offsetWidth / 2 - handle.offsetWidth / 2;
+
+                const handleStart = (e) => {
+                    e.preventDefault();
+                    isActive = true;
+                    const rect = container.getBoundingClientRect();
+                    startPos.x = rect.left + rect.width / 2;
+                    startPos.y = rect.top + rect.height / 2;
+                    
+                    if (navigator.vibrate) navigator.vibrate(30);
+                };
+
+                const handleMove = (e) => {
+                    if (!isActive) return;
+                    e.preventDefault();
+                    
+                    const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+                    const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+                    
+                    let deltaX = clientX - startPos.x;
+                    let deltaY = clientY - startPos.y;
+                    
+                    const distance = Math.sqrt(deltaX * deltaX + deltaY * deltaY);
+                    if (distance > maxDistance) {
+                        deltaX = (deltaX / distance) * maxDistance;
+                        deltaY = (deltaY / distance) * maxDistance;
+                    }
+                    
+                    handle.style.transform = `translate(${deltaX}px, ${deltaY}px)`;
+                    onMove(deltaX / maxDistance, deltaY / maxDistance);
+                };
+
+                const handleEnd = (e) => {
+                    e.preventDefault();
+                    isActive = false;
+                    handle.style.transform = 'translate(0px, 0px)';
+                    onMove(0, 0);
+                };
+
+                container.addEventListener('touchstart', handleStart, { passive: false });
+                container.addEventListener('touchmove', handleMove, { passive: false });
+                container.addEventListener('touchend', handleEnd, { passive: false });
+                container.addEventListener('touchcancel', handleEnd, { passive: false });
+            }
+
+            setupMobileButton(buttonId, callback) {
+                const button = document.getElementById(buttonId);
+                if (!button) return;
+                
+                button.addEventListener('touchstart', (e) => {
+                    e.preventDefault();
+                    if (typeof callback === 'function') callback(true);
+                    if (navigator.vibrate) navigator.vibrate(50);
+                }, { passive: false });
+                
+                button.addEventListener('touchend', (e) => {
+                    e.preventDefault();
+                    if (typeof callback === 'function') callback(false);
+                }, { passive: false });
+            }
+
+            initializePerformanceMonitor() {
+                this.performanceMonitor = {
+                    fpsCounter: document.getElementById('fpsCounter'),
+                    memoryUsage: document.getElementById('memoryUsage'),
+                    triangleCount: document.getElementById('triangleCount')
+                };
+            }
+
+            bindEvents() {
+                // Window events
+                window.addEventListener('resize', () => this.onWindowResize());
+                
+                // Keyboard events
+                document.addEventListener('keydown', (e) => this.onKeyDown(e));
+                document.addEventListener('keyup', (e) => this.onKeyUp(e));
+                
+                // UI events
+                const enterBtn = document.getElementById('enterExperience');
+                if (enterBtn) {
+                    enterBtn.addEventListener('click', () => this.enterExperience());
+                }
+
+                const settingsBtn = document.getElementById('openSettings');
+                if (settingsBtn) {
+                    settingsBtn.addEventListener('click', () => this.showSettings());
+                }
+
+                const closeBtn = document.getElementById('closeSettings');
+                if (closeBtn) {
+                    closeBtn.addEventListener('click', () => this.hideSettings());
+                }
+
+                const menuBtn = document.getElementById('menuToggle');
+                if (menuBtn) {
+                    menuBtn.addEventListener('click', () => this.toggleMenu());
+                }
+                
+                // Environment controls
+                document.querySelectorAll('.env-button').forEach(button => {
+                    button.addEventListener('click', (e) => {
+                        e.stopPropagation();
+                        this.changeEnvironment(button.dataset.env);
+                    });
+                });
+            }
+
+            startLoadingSequence() {
+                this.loadModel();
+                this.animate();
+            }
+
+            async loadModel() {
+                try {
+                    const gltf = await new Promise((resolve, reject) => {
+                        this.gltfLoader.load(ULTRA_CONFIG.MODEL.URL, resolve, undefined, reject);
+                    });
+
+                    this.processLoadedModel(gltf);
+                } catch (error) {
+                    console.error('Model loading failed:', error);
+                    this.handleLoadingError(error);
+                }
+            }
+
+            processLoadedModel(gltf) {
+                const model = gltf.scene;
+                
+                // Ultra-realistic material enhancement
+                model.traverse((child) => {
+                    if (child.isMesh) {
+                        this.enhanceMaterial(child);
+                        this.setupShadows(child);
+                        this.addCollisionGeometry(child);
+                    }
+                });
+
+                // Position and scale
+                model.position.set(
+                    ULTRA_CONFIG.MODEL.POSITION.x,
+                    ULTRA_CONFIG.MODEL.POSITION.y,
+                    ULTRA_CONFIG.MODEL.POSITION.z
+                );
+                model.scale.setScalar(ULTRA_CONFIG.MODEL.SCALE);
+                
+                this.scene.add(model);
+                this.carModel = model;
+                
+                console.log('Ultra-realistic model loaded successfully');
+            }
+
+            enhanceMaterial(mesh) {
+                if (!mesh.material) return;
+
+                // Convert to PBR material if needed
+                if (!mesh.material.isMeshStandardMaterial && !mesh.material.isMeshPhysicalMaterial) {
+                    const newMaterial = new THREE.MeshStandardMaterial();
+                    
+                    // Copy properties
+                    if (mesh.material.map) newMaterial.map = mesh.material.map;
+                    if (mesh.material.color) newMaterial.color = mesh.material.color;
+                    if (mesh.material.normalMap) newMaterial.normalMap = mesh.material.normalMap;
+                    
+                    mesh.material = newMaterial;
+                }
+
+                // Ultra-realistic material properties with fixed values
+                const materialName = mesh.material.name?.toLowerCase() || '';
+                const meshName = mesh.name?.toLowerCase() || '';
+
+                if (this.isPaintMaterial(materialName, meshName)) {
+                    this.setupPaintMaterial(mesh.material);
+                } else if (this.isMetalMaterial(materialName, meshName)) {
+                    this.setupMetalMaterial(mesh.material);
+                } else if (this.isGlassMaterial(materialName, meshName)) {
+                    this.setupGlassMaterial(mesh.material);
+                } else if (this.isRubberMaterial(materialName, meshName)) {
+                    this.setupRubberMaterial(mesh.material);
+                } else if (this.isPlasticMaterial(materialName, meshName)) {
+                    this.setupPlasticMaterial(mesh.material);
+                }
+
+                // Enhanced texture settings
+                if (mesh.material.map) {
+                    mesh.material.map.anisotropy = this.renderer.capabilities.getMaxAnisotropy();
+                    mesh.material.map.generateMipmaps = true;
+                }
+            }
+
+            isPaintMaterial(materialName, meshName) {
+                return materialName.includes('paint') || meshName.includes('body') || 
+                       materialName.includes('car') || meshName.includes('exterior');
+            }
+
+            isMetalMaterial(materialName, meshName) {
+                return materialName.includes('chrome') || materialName.includes('metal') ||
+                       materialName.includes('steel') || meshName.includes('bumper');
+            }
+
+            isGlassMaterial(materialName, meshName) {
+                return materialName.includes('glass') || meshName.includes('window') ||
+                       materialName.includes('windshield') || meshName.includes('light');
+            }
+
+            isRubberMaterial(materialName, meshName) {
+                return materialName.includes('tire') || materialName.includes('rubber') ||
+                       meshName.includes('wheel') || meshName.includes('tire');
+            }
+
+            isPlasticMaterial(materialName, meshName) {
+                return materialName.includes('plastic') || materialName.includes('interior') ||
+                       meshName.includes('dashboard') || meshName.includes('trim');
+            }
+
+            setupPaintMaterial(material) {
+                material.metalness = 0.8;
+                material.roughness = 0.15;
+                material.clearcoat = 0.8;
+                material.clearcoatRoughness = 0.1;
+                material.envMapIntensity = 1.0;
+            }
+
+            setupMetalMaterial(material) {
+                material.metalness = 0.9;
+                material.roughness = 0.05;
+                material.envMapIntensity = 1.2;
+            }
+
+            setupGlassMaterial(material) {
+                material.metalness = 0.0;
+                material.roughness = 0.0;
+                material.transparent = true;
+                material.opacity = 0.8;
+                material.transmission = 0.9;
+                material.thickness = 0.5;
+                material.envMapIntensity = 0.8;
+            }
+
+            setupRubberMaterial(material) {
+                material.metalness = 0.0;
+                material.roughness = 0.9;
+                material.color.setHex(0x2a2a2a);
+                material.envMapIntensity = 0.2;
+            }
+
+            setupPlasticMaterial(material) {
+                material.metalness = 0.0;
+                material.roughness = 0.5;
+                material.envMapIntensity = 0.6;
+            }
+
+            setupShadows(mesh) {
+                mesh.castShadow = true;
+                mesh.receiveShadow = true;
+            }
+
+            addCollisionGeometry(mesh) {
+                mesh.updateWorldMatrix(true, true);
+                const box = new THREE.Box3().setFromObject(mesh);
+                if (!box.isEmpty()) {
+                    this.collisionBoxes.push(box);
+                }
+            }
+
+            async changeEnvironment(envName) {
+                if (!ULTRA_CONFIG.ENVIRONMENTS[envName]) return;
+
+                this.gameState.currentEnvironment = envName;
+                const currentEnvElement = document.getElementById('currentEnvironment');
+                if (currentEnvElement) {
+                    currentEnvElement.textContent = ULTRA_CONFIG.ENVIRONMENTS[envName].name;
+                }
+
+                // Update active button
+                document.querySelectorAll('.env-button').forEach(btn => {
+                    btn.classList.toggle('active', btn.dataset.env === envName);
+                });
+
+                const env = ULTRA_CONFIG.ENVIRONMENTS[envName];
+                
+                // Apply environment
+                this.scene.background = env.background;
+                this.scene.environment = null; // Use procedural lighting
+
+                // Update fog
+                this.scene.fog.color.setHex(env.fog.color);
+                this.scene.fog.near = env.fog.near;
+                this.scene.fog.far = env.fog.far;
+
+                // Animate lighting changes
+                this.animateLightingTransition(env);
+            }
+
+            animateLightingTransition(env) {
+                const duration = 2000;
+                const startTime = performance.now();
+                
+                const startAmbient = this.ambientLight.intensity;
+                const startDirectional = this.directionalLight.intensity;
+                const startExposure = this.renderer.toneMappingExposure;
+                
+                const animate = () => {
+                    const elapsed = performance.now() - startTime;
+                    const progress = Math.min(elapsed / duration, 1);
+                    const easeProgress = 1 - Math.pow(1 - progress, 3);
+                    
+                    this.ambientLight.intensity = THREE.MathUtils.lerp(startAmbient, env.ambientIntensity, easeProgress);
+                    this.directionalLight.intensity = THREE.MathUtils.lerp(startDirectional, env.directionalIntensity, easeProgress);
+                    this.renderer.toneMappingExposure = THREE.MathUtils.lerp(startExposure, env.exposure, easeProgress);
+                    
+                    if (progress < 1) {
+                        requestAnimationFrame(animate);
+                    }
+                };
+                
+                animate();
+            }
+
+            updatePhysics(deltaTime) {
+                if (!this.gameState.isPlaying) return;
+
+                const playerObject = ULTRA_CONFIG.IS_MOBILE ? this.camera : this.pointerLockControls.getObject();
+                
+                // Apply gravity
+                this.gameState.playerVelocity.y -= ULTRA_CONFIG.PHYSICS.GRAVITY * deltaTime;
+                
+                // Handle movement
+                this.handleMovement(deltaTime, playerObject);
+                
+                // Apply velocity
+                const newPosition = playerObject.position.clone().add(
+                    this.gameState.playerVelocity.clone().multiplyScalar(deltaTime)
+                );
+                
+                // Ground collision
+                if (newPosition.y <= ULTRA_CONFIG.PHYSICS.EYE_HEIGHT) {
+                    newPosition.y = ULTRA_CONFIG.PHYSICS.EYE_HEIGHT;
+                    this.gameState.playerVelocity.y = 0;
+                    this.gameState.canJump = true;
+                }
+                
+                // Object collision
+                this.handleCollisions(newPosition);
+                
+                playerObject.position.copy(newPosition);
+                
+                // Update UI
+                this.updatePositionDisplay(newPosition);
+            }
+
+            handleMovement(deltaTime, playerObject) {
+                const moveVector = new THREE.Vector3();
+                
+                if (ULTRA_CONFIG.IS_MOBILE) {
+                    moveVector.x = this.inputState.touch.movement.x;
+                    moveVector.z = this.inputState.touch.movement.y;
+                    
+                    // Update camera rotation
+                    this.gameState.cameraRotation.yaw += this.inputState.touch.camera.x * deltaTime * this.gameState.settings.mouseSensitivity;
+                    this.gameState.cameraRotation.pitch += this.inputState.touch.camera.y * deltaTime * this.gameState.settings.mouseSensitivity;
+                    this.gameState.cameraRotation.pitch = THREE.MathUtils.clamp(this.gameState.cameraRotation.pitch, -Math.PI/2 + 0.1, Math.PI/2 - 0.1);
+                    
+                    this.camera.rotation.order = 'YXZ';
+                    this.camera.rotation.y = this.gameState.cameraRotation.yaw;
+                    this.camera.rotation.x = this.gameState.cameraRotation.pitch;
+                } else {
+                    if (this.inputState.keys.forward) moveVector.z -= 1;
+                    if (this.inputState.keys.backward) moveVector.z += 1;
+                    if (this.inputState.keys.left) moveVector.x -= 1;
+                    if (this.inputState.keys.right) moveVector.x += 1;
+                }
+                
+                if (moveVector.length() > 0) {
+                    moveVector.normalize();
+                    
+                    const speed = this.gameState.settings.moveSpeed * 
+                                 (this.inputState.keys.run ? ULTRA_CONFIG.PHYSICS.RUN_MULTIPLIER : 1.0);
+                    
+                    // Camera-relative movement
+                    const direction = new THREE.Vector3();
+                    this.camera.getWorldDirection(direction);
+                    direction.y = 0;
+                    direction.normalize();
+                    
+                    const right = new THREE.Vector3();
+                    right.crossVectors(direction, this.camera.up).normalize();
+                    
+                    const movement = new THREE.Vector3();
+                    movement.addScaledVector(direction, -moveVector.z);
+                    movement.addScaledVector(right, moveVector.x);
+                    movement.multiplyScalar(speed);
+                    
+                    // Apply movement with physics
+                    const friction = this.gameState.canJump ? ULTRA_CONFIG.PHYSICS.GROUND_FRICTION : ULTRA_CONFIG.PHYSICS.AIR_FRICTION;
+                    this.gameState.playerVelocity.x = THREE.MathUtils.lerp(this.gameState.playerVelocity.x, movement.x, friction);
+                    this.gameState.playerVelocity.z = THREE.MathUtils.lerp(this.gameState.playerVelocity.z, movement.z, friction);
+                } else {
+                    // Apply friction when not moving
+                    const friction = this.gameState.canJump ? ULTRA_CONFIG.PHYSICS.GROUND_FRICTION : ULTRA_CONFIG.PHYSICS.AIR_FRICTION;
+                    this.gameState.playerVelocity.x *= friction;
+                    this.gameState.playerVelocity.z *= friction;
+                }
+            }
+
+            handleCollisions(position) {
+                for (const box of this.collisionBoxes) {
+                    const expandedBox = box.clone().expandByScalar(ULTRA_CONFIG.PHYSICS.PLAYER_RADIUS);
+                    if (expandedBox.containsPoint(position)) {
+                        const closestPoint = expandedBox.clampPoint(position.clone(), new THREE.Vector3());
+                        const pushVector = position.clone().sub(closestPoint);
+                        if (pushVector.length() > 0) {
+                            pushVector.normalize().multiplyScalar(ULTRA_CONFIG.PHYSICS.PLAYER_RADIUS + ULTRA_CONFIG.PHYSICS.COLLISION_MARGIN);
+                            position.copy(closestPoint.add(pushVector));
+                        }
+                    }
+                }
+            }
+
+            jump() {
+                if (this.gameState.canJump) {
+                    this.gameState.playerVelocity.y = this.gameState.settings.jumpForce;
+                    this.gameState.canJump = false;
+                    
+                    if (navigator.vibrate) navigator.vibrate(100);
+                }
+            }
+
+            onKeyDown(event) {
+                if (!this.gameState.isPlaying) return;
+                
+                switch(event.code) {
+                    case 'KeyW': case 'ArrowUp': this.inputState.keys.forward = true; break;
+                    case 'KeyS': case 'ArrowDown': this.inputState.keys.backward = true; break;
+                    case 'KeyA': case 'ArrowLeft': this.inputState.keys.left = true; break;
+                    case 'KeyD': case 'ArrowRight': this.inputState.keys.right = true; break;
+                    case 'ShiftLeft': case 'ShiftRight': this.inputState.keys.run = true; break;
+                    case 'Space':
+                        event.preventDefault();
+                        this.jump();
+                        break;
+                    case 'Tab':
+                        event.preventDefault();
+                        this.toggleMenu();
+                        break;
+                    case 'Escape':
+                        if (this.pointerLockControls && this.pointerLockControls.isLocked) {
+                            this.pointerLockControls.unlock();
+                        }
+                        break;
+                }
+            }
+
+            onKeyUp(event) {
+                switch(event.code) {
+                    case 'KeyW': case 'ArrowUp': this.inputState.keys.forward = false; break;
+                    case 'KeyS': case 'ArrowDown': this.inputState.keys.backward = false; break;
+                    case 'KeyA': case 'ArrowLeft': this.inputState.keys.left = false; break;
+                    case 'KeyD': case 'ArrowRight': this.inputState.keys.right = false; break;
+                    case 'ShiftLeft': case 'ShiftRight': this.inputState.keys.run = false; break;
+                }
+            }
+
+            enterExperience() {
+                if (ULTRA_CONFIG.IS_MOBILE) {
+                    this.gameState.isPlaying = true;
+                    this.showGameUI();
+                    const mobileControls = document.getElementById('mobileControls');
+                    if (mobileControls) {
+                        mobileControls.classList.add('active');
+                    }
+                } else {
+                    if (this.pointerLockControls) {
+                        this.pointerLockControls.lock();
+                    }
+                }
+            }
+
+            showWelcomeScreen() {
+                const welcomeScreen = document.getElementById('welcomeScreen');
+                const envControls = document.getElementById('environmentControls');
+                const statusBar = document.getElementById('statusBar');
+                const menuToggle = document.getElementById('menuToggle');
+                const mobileControls = document.getElementById('mobileControls');
+
+                if (welcomeScreen) welcomeScreen.style.display = 'flex';
+                if (envControls) envControls.style.display = 'none';
+                if (statusBar) statusBar.classList.remove('show');
+                if (menuToggle) menuToggle.classList.remove('show');
+                if (mobileControls) mobileControls.classList.remove('active');
+            }
+
+            showGameUI() {
+                const welcomeScreen = document.getElementById('welcomeScreen');
+                const envControls = document.getElementById('environmentControls');
+                const statusBar = document.getElementById('statusBar');
+                const menuToggle = document.getElementById('menuToggle');
+
+                if (welcomeScreen) welcomeScreen.style.display = 'none';
+                if (envControls) envControls.style.display = 'flex';
+                if (statusBar) statusBar.classList.add('show');
+                if (menuToggle) menuToggle.classList.add('show');
+            }
+
+            showSettings() {
+                const settingsPanel = document.getElementById('settingsPanel');
+                if (settingsPanel) {
+                    settingsPanel.classList.add('show');
+                }
+                
+                // Unlock pointer for UI interaction
+                if (this.pointerLockControls && this.pointerLockControls.isLocked) {
+                    this.pointerLockControls.unlock();
+                }
+            }
+
+            hideSettings() {
+                const settingsPanel = document.getElementById('settingsPanel');
+                if (settingsPanel) {
+                    settingsPanel.classList.remove('show');
+                }
+            }
+
+            toggleMenu() {
+                const envControls = document.getElementById('environmentControls');
+                if (envControls) {
+                    const isVisible = envControls.style.display !== 'none';
+                    envControls.style.display = isVisible ? 'none' : 'flex';
+                    
+                    // Unlock pointer when showing menu
+                    if (!isVisible && this.pointerLockControls && this.pointerLockControls.isLocked) {
+                        this.pointerLockControls.unlock();
+                    }
+                }
+            }
+
+            updateLoadingProgress(progress) {
+                const progressBar = document.getElementById('loadingProgress');
+                const percentage = document.getElementById('loadingPercentage');
+                
+                if (progressBar) progressBar.style.width = progress + '%';
+                if (percentage) percentage.textContent = Math.round(progress) + '%';
+            }
+
+            finishLoading() {
+                const loadingScreen = document.getElementById('loadingScreen');
+                if (loadingScreen) {
+                    loadingScreen.classList.add('hidden');
+                }
+            }
+
+            handleLoadingError(error) {
+                console.error('Loading failed:', error);
+                const loadingTitle = document.querySelector('.loading-title');
+                const loadingSubtitle = document.querySelector('.loading-subtitle');
+                
+                if (loadingTitle) loadingTitle.textContent = 'فشل في التحميل';
+                if (loadingSubtitle) loadingSubtitle.textContent = 'يرجى إعادة تحميل الصفحة والمحاولة مرة أخرى';
+            }
+
+            updatePerformanceMonitor() {
+                // Update FPS
+                this.stats.frameCount++;
+                const currentTime = performance.now();
+                if (currentTime - this.stats.lastTime >= 1000) {
+                    this.stats.fps = Math.round((this.stats.frameCount * 1000) / (currentTime - this.stats.lastTime));
+                    if (this.performanceMonitor.fpsCounter) {
+                        this.performanceMonitor.fpsCounter.textContent = this.stats.fps;
+                    }
+                    this.stats.frameCount = 0;
+                    this.stats.lastTime = currentTime;
+                }
+
+                // Update memory usage
+                if (performance.memory && this.performanceMonitor.memoryUsage) {
+                    this.stats.memoryUsage = Math.round(performance.memory.usedJSHeapSize / 1048576);
+                    this.performanceMonitor.memoryUsage.textContent = this.stats.memoryUsage + ' MB';
+                }
+
+                // Update triangle count
+                this.renderer.info.reset();
+                this.stats.triangleCount = this.renderer.info.render.triangles;
+                if (this.performanceMonitor.triangleCount) {
+                    this.performanceMonitor.triangleCount.textContent = this.stats.triangleCount.toLocaleString();
+                }
+            }
+
+            updatePositionDisplay(position) {
+                const positionDisplay = document.getElementById('positionDisplay');
+                const cameraInfo = document.getElementById('cameraInfo');
+                
+                if (positionDisplay) {
+                    const x = Math.round(position.x * 10) / 10;
+                    const y = Math.round(position.y * 10) / 10;
+                    const z = Math.round(position.z * 10) / 10;
+                    positionDisplay.textContent = `${x}, ${y}, ${z}`;
+                }
+                
+                if (cameraInfo) {
+                    const yawDeg = Math.round(THREE.MathUtils.radToDeg(this.gameState.cameraRotation.yaw));
+                    const pitchDeg = Math.round(THREE.MathUtils.radToDeg(this.gameState.cameraRotation.pitch));
+                    cameraInfo.textContent = `${yawDeg}°, ${pitchDeg}°`;
+                }
+            }
+
+            updateShadowQuality(quality) {
+                const qualityNames = ['منخفضة', 'متوسطة', 'عالية', 'فائقة'];
+                const shadowSizes = [512, 1024, 2048, 4096];
+                
+                const qualityDisplay = document.getElementById('shadowQualityValue');
+                if (qualityDisplay) {
+                    qualityDisplay.textContent = qualityNames[quality];
+                }
+                
+                const newSize = shadowSizes[quality];
+                this.directionalLight.shadow.mapSize.setScalar(newSize);
+                this.directionalLight.shadow.map?.dispose();
+                this.directionalLight.shadow.map = null;
+            }
+
+            togglePostProcessing(enabled) {
+                const postDisplay = document.getElementById('postProcessingValue');
+                if (postDisplay) {
+                    postDisplay.textContent = enabled ? 'مفعلة' : 'معطلة';
+                }
+                
+                if (enabled && !this.composer) {
+                    this.initializePostProcessing();
+                }
+            }
+
+            onWindowResize() {
+                this.camera.aspect = window.innerWidth / window.innerHeight;
+                this.camera.updateProjectionMatrix();
+                this.renderer.setSize(window.innerWidth, window.innerHeight);
+                
+                if (this.composer) {
+                    this.composer.setSize(window.innerWidth, window.innerHeight);
+                }
+            }
+
+            animate() {
+                requestAnimationFrame(() => this.animate());
+                
+                const deltaTime = this.clock.getDelta();
+                
+                // Update physics
+                this.updatePhysics(deltaTime);
+                
+                // Update performance monitor
+                this.updatePerformanceMonitor();
+                
+                // Render
+                if (this.composer && this.gameState.settings.postProcessing) {
+                    this.composer.render();
+                } else {
+                    this.renderer.render(this.scene, this.camera);
+                }
+            }
         }
-        if(mesh.material.map){
-          mesh.material.map.anisotropy = Math.min(renderer.capabilities.getMaxAnisotropy(),4);
-          mesh.material.map.generateMipmaps = true;
-        }
-        mesh.castShadow = true; mesh.receiveShadow = true;
-      }
-    }
 
-    // load model and add to scene
-    (async ()=>{
-      try{
-        const gltf = await loadModel(CONFIG.MODEL_URL);
-        car = gltf.scene || gltf.scenes[0];
-        car.traverse(fixMaterial);
-        car.position.set(0,0,0);
-        car.scale.setScalar(1.0);
-        scene.add(car);
-      }catch(err){
-        console.warn('فشل تحميل النموذج:',err);
-      }
-    })();
-
-    // Controls: pointer lock for desktop; simple touch-look for mobile
-    let controls = null;
-    if(!IS_MOBILE){
-      controls = new PointerLockControls(camera, renderer.domElement);
-      document.addEventListener('click', ()=>{ if(!controls.isLocked) controls.lock(); });
-      scene.add(controls.getObject());
-    } else {
-      // show subtle tilt/drag handling later — we use a simple camera orbit with touch
-      let last = null;
-      let touching = false;
-      renderer.domElement.addEventListener('touchstart', e=>{ if(e.touches.length===1){touching=true; last = {x:e.touches[0].clientX,y:e.touches[0].clientY};} });
-      renderer.domElement.addEventListener('touchmove', e=>{
-        if(!touching||e.touches.length!==1) return; e.preventDefault();
-        const dx = (e.touches[0].clientX - last.x)/window.innerWidth;
-        const dy = (e.touches[0].clientY - last.y)/window.innerHeight;
-        last = {x:e.touches[0].clientX,y:e.touches[0].clientY};
-        camera.rotation.y -= dx * CONFIG.TOUCH_SENS;
-        camera.rotation.x -= dy * CONFIG.TOUCH_SENS;
-        camera.rotation.x = Math.max(-Math.PI/2+0.1, Math.min(Math.PI/2-0.1,camera.rotation.x));
-      },{passive:false});
-      renderer.domElement.addEventListener('touchend', ()=>{touching=false; last=null});
-    }
-
-    // Basic player-like movement: forward/back via keyboard or mobile joystick
-    const velocity = new THREE.Vector3();
-    const keys = {};
-    window.addEventListener('keydown', e=>keys[e.code]=true);
-    window.addEventListener('keyup', e=>keys[e.code]=false);
-
-    // Mobile joystick: basic implementation
-    const movementHandle = document.getElementById('movementHandle');
-    const movementJoystick = document.getElementById('movementJoystick');
-    if(movementJoystick){
-      let active=false, origin=null, maxDist=movementJoystick.clientWidth/2 - movementHandle.clientWidth/2;
-      movementJoystick.addEventListener('touchstart', e=>{e.preventDefault(); active=true; origin={x:e.touches[0].clientX,y:e.touches[0].clientY}} ,{passive:false});
-      movementJoystick.addEventListener('touchmove', e=>{if(!active) return; e.preventDefault(); const dx = e.touches[0].clientX - origin.x; const dy = e.touches[0].clientY - origin.y; const dist = Math.min(Math.hypot(dx,dy), maxDist); const nx = dx/dist||0; const ny=dy/dist||0; movementHandle.style.transform = `translate(${dx}px, ${dy}px)`; velocity.x = (dx/maxDist)*2; velocity.z = (dy/maxDist)*2;},{passive:false});
-      movementJoystick.addEventListener('touchend', e=>{active=false; movementHandle.style.transform='translate(0,0)'; velocity.x=0; velocity.z=0;},{passive:false});
-    }
-
-    // Resize
-    window.addEventListener('resize', ()=>{
-      const dpr = IS_MOBILE ? Math.min(window.devicePixelRatio||1, CONFIG.MAX_PIXEL_RATIO_MOBILE) : Math.min(window.devicePixelRatio||1, CONFIG.MAX_PIXEL_RATIO_DESKTOP);
-      renderer.setPixelRatio(dpr);
-      camera.aspect = window.innerWidth/window.innerHeight;
-      camera.updateProjectionMatrix();
-      renderer.setSize(window.innerWidth, window.innerHeight);
-    });
-
-    // Animation loop + light, fps tracking
-    let lastTime = performance.now(); let frames = 0; let fpsEl = document.getElementById('fps');
-    function animate(){
-      requestAnimationFrame(animate);
-      const now = performance.now(); const dt = (now-lastTime)/1000; lastTime=now; frames++;
-      if(now%1000<50){ fpsEl.textContent = Math.round(frames/(dt||1)); frames=0; }
-
-      // Simple movement: WASD
-      const forward = keys['KeyW'] || keys['ArrowUp'];
-      const back = keys['KeyS'] || keys['ArrowDown'];
-      const left = keys['KeyA'] || keys['ArrowLeft'];
-      const right = keys['KeyD'] || keys['ArrowRight'];
-      const moveSpeed = IS_MOBILE ? 2.5 : 5.0;
-      const moveVec = new THREE.Vector3();
-      if(forward) moveVec.z -= 1; if(back) moveVec.z += 1; if(left) moveVec.x -= 1; if(right) moveVec.x += 1;
-      if(moveVec.length()>0) moveVec.normalize().multiplyScalar(moveSpeed);
-      // combine with joystick velocity
-      camera.position.x += (moveVec.x + velocity.x) * dt;
-      camera.position.z += (moveVec.z + velocity.z) * dt;
-
-      renderer.render(scene,camera);
-    }
-    animate();
-
-    // UI wiring
-    document.getElementById('welcomeEnter').addEventListener('click', ()=>{document.getElementById('welcomeScreen').style.display='none'; if(IS_MOBILE) document.getElementById('mobileControls').classList.add('active');});
-    document.getElementById('enterExperience').addEventListener('click', ()=>{document.getElementById('welcomeScreen').style.display='none'; if(IS_MOBILE) document.getElementById('mobileControls').classList.add('active'); else { if(controls) controls.lock(); }});
-
-    // Quick accessibility: allow toggling welcome
-    document.getElementById('openSettings').addEventListener('click', ()=>{alert('لوحة الإعدادات: قيد التطوير — أخبرني بأي إعدادات تريدها!')});
-
-    // Expose for debugging
-    window._showroom = {scene,camera,renderer};
-  </script>
+        // ==================== INITIALIZE FIXED ULTRA PROFESSIONAL APPLICATION ====================
+        document.addEventListener('DOMContentLoaded', () => {
+            window.ultraShowroom = new FixedUltraProfessional3DShowroom();
+        });
+    </script>
 </body>
 </html>
