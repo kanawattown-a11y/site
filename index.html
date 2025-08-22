@@ -52,6 +52,7 @@
     import { PointerLockControls } from "https://unpkg.com/three@0.160.0/examples/jsm/controls/PointerLockControls.js";
 
     // === إعدادات قابلة للتعديل ===
+    // ضع هنا رابط مباشر إلى ملف GLB/GLTF أو اسم الملف إذا في نفس المجلد
     const MODEL_URL = 'https://raw.githubusercontent.com/kanawattown-a11y/12/f91219369eb76bb2e445f95abaa61860e3b886dd/naj-v1.glb';
 
     const MOVE_SPEED = 6.0;
@@ -66,7 +67,12 @@
     const renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: 'high-performance' });
     renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
     renderer.setSize(innerWidth, innerHeight);
-    renderer.outputColorSpace = THREE.SRGBColorSpace;
+    // توافق مع إصدارات الـ Color Management (fallback إن لم تكن الخاصية متاحة)
+    if ('outputColorSpace' in renderer && THREE.SRGBColorSpace !== undefined) {
+      renderer.outputColorSpace = THREE.SRGBColorSpace;
+    } else if (THREE.sRGBEncoding !== undefined) {
+      renderer.outputEncoding = THREE.sRGBEncoding;
+    }
     if (ENABLE_SHADOWS) renderer.shadowMap.enabled = true;
     app.appendChild(renderer.domElement);
 
@@ -106,10 +112,10 @@
       scene.add(root);
     }, undefined, (err) => {
       console.error('فشل تحميل النموذج:', err);
-      alert('تعذر تحميل النموذج. تأكد من مسار MODEL_URL أو شغّل خادم محلي.');
+      alert('تعذر تحميل النموذج. تأكد من مسار MODEL_URL أو شغّل خادم محلي أو استخدم رابط مباشر للملف.');
     });
 
-    // Pointer Lock
+    // Pointer Lock controls
     const controls = new PointerLockControls(camera, renderer.domElement);
     scene.add(controls.getObject());
     camera.position.set(0, EYE_HEIGHT, 4);
