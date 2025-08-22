@@ -933,7 +933,12 @@
     import * as THREE from "three";
     import { GLTFLoader } from "https://unpkg.com/three@0.160.0/examples/jsm/loaders/GLTFLoader.js";
     import { DRACOLoader } from "https://unpkg.com/three@0.160.0/examples/jsm/loaders/DRACOLoader.js";
+    import { RGBELoader } from "https://unpkg.com/three@0.160.0/examples/jsm/loaders/RGBELoader.js";
     import { PointerLockControls } from "https://unpkg.com/three@0.160.0/examples/jsm/controls/PointerLockControls.js";
+    import { EffectComposer } from "https://unpkg.com/three@0.160.0/examples/jsm/postprocessing/EffectComposer.js";
+    import { RenderPass } from "https://unpkg.com/three@0.160.0/examples/jsm/postprocessing/RenderPass.js";
+    import { UnrealBloomPass } from "https://unpkg.com/three@0.160.0/examples/jsm/postprocessing/UnrealBloomPass.js";
+    import { SSAOPass } from "https://unpkg.com/three@0.160.0/examples/jsm/postprocessing/SSAOPass.js";
 
     // ==================== Enhanced Configuration ====================
     const CONFIG = {
@@ -941,61 +946,66 @@
       DRACO_DECODER_PATH: 'https://www.gstatic.com/draco/v1/decoders/',
       
       // Physics - Enhanced values
-      MOVE_SPEED: 6.0,
-      RUN_MULTIPLIER: 2.0,
-      JUMP_FORCE: 12.0,
-      GRAVITY: 20.0,
+      MOVE_SPEED: 8.0,
+      RUN_MULTIPLIER: 2.5,
+      JUMP_FORCE: 15.0,
+      GRAVITY: 25.0,
       EYE_HEIGHT: 1.8,
       PLAYER_RADIUS: 0.4,
-      MOUSE_SENSITIVITY: 1.0,
+      MOUSE_SENSITIVITY: 1.5,
       
       // Performance
-      SHADOW_MAP_SIZE: 2048,
+      SHADOW_MAP_SIZE: 4096,
       MAX_PIXEL_RATIO: 2,
       
       // Mobile detection
       IS_MOBILE: /Mobi|Android|iPhone|iPad/i.test(navigator.userAgent),
       
-      // Environment settings
+      // Environment settings with HDRI
       ENVIRONMENTS: {
         showroom: { 
           background: new THREE.Color(0x2d3748), 
           fog: new THREE.Color(0x2d3748),
-          ambientIntensity: 0.4,
-          directionalIntensity: 1.2
+          ambientIntensity: 0.6,
+          directionalIntensity: 1.5,
+          hdri: null
         },
         city: { 
           background: new THREE.Color(0x87ceeb), 
           fog: new THREE.Color(0x87ceeb),
-          ambientIntensity: 0.6,
-          directionalIntensity: 1.0
+          ambientIntensity: 0.8,
+          directionalIntensity: 1.2,
+          hdri: null
         },
         desert: { 
           background: new THREE.Color(0xffd700), 
           fog: new THREE.Color(0xffd700),
-          ambientIntensity: 0.8,
-          directionalIntensity: 1.5
+          ambientIntensity: 1.0,
+          directionalIntensity: 2.0,
+          hdri: null
         },
         night: { 
           background: new THREE.Color(0x0f172a), 
           fog: new THREE.Color(0x0f172a),
-          ambientIntensity: 0.2,
-          directionalIntensity: 0.8
+          ambientIntensity: 0.3,
+          directionalIntensity: 0.8,
+          hdri: null
         },
         studio: { 
-          background: new THREE.Color(0xf8f8f8), // أبيض خفيف مع لمسة تدرج طبيعي
-          fog: new THREE.Color(0xf8f8f8),        // ضباب خفيف بنفس اللون لتعطي عمق
-          ambientIntensity: 1.0,                  // زيادة الضوء العام قليلاً
-          directionalIntensity: 0.8               // ضوء رئيسي أقوى يعطي ظلال واضحة
+          background: new THREE.Color(0xf8f8f8),
+          fog: new THREE.Color(0xf8f8f8),
+          ambientIntensity: 1.2,
+          directionalIntensity: 1.0,
+          hdri: null
         }
       }
     };
 
     // ==================== Global State ====================
-    let scene, camera, renderer, controls;
-    let loadingManager, dracoLoader, gltfLoader;
+    let scene, camera, renderer, controls, composer;
+    let loadingManager, dracoLoader, gltfLoader, rgbeLoader;
     let clock = new THREE.Clock();
-    let ambientLight, directionalLight;
+    let ambientLight, directionalLight, hemisphereLight;
     let gameState = {
       isPlaying: false,
       canJump: false,
@@ -1009,11 +1019,11 @@
       }
     };
 
-    // Physics
+    // Enhanced Physics
     let velocity = new THREE.Vector3();
     let collisionBoxes = [];
     
-    // Controls
+    // Enhanced Controls
     let keys = { forward: false, back: false, left: false, right: false, run: false };
     let mobileInput = { move: { x: 0, y: 0 }, look: { x: 0, y: 0 } };
     let yaw = 0, pitch = 0;
@@ -1035,6 +1045,7 @@
       setupLoaders();
       setupLighting();
       setupEnvironment();
+      setupPostProcessing();
       setupEventListeners();
       setupSettings();
       
@@ -1083,14 +1094,17 @@
       renderer.shadowMap.enabled = true;
       renderer.shadowMap.type = THREE.PCFSoftShadowMap;
       renderer.toneMapping = THREE.ACESFilmicToneMapping;
-      renderer.toneMappingExposure = 1.2;
+      renderer.toneMappingExposure = 1.0;
+      
+      // Enable physically correct lights
+      renderer.physicallyCorrectLights = true;
       
       container.appendChild(renderer.domElement);
     }
 
     function setupScene() {
       scene = new THREE.Scene();
-      scene.background = new THREE.Color(0x2d3748); // Initialize background
+      scene.background = new THREE.Color(0x2d3748);
       scene.fog = new THREE.Fog(0x2d3748, 50, 200);
     }
 
@@ -1130,19 +1144,22 @@
       
       gltfLoader = new GLTFLoader(loadingManager);
       gltfLoader.setDRACOLoader(dracoLoader);
+      
+      rgbeLoader = new RGBELoader(loadingManager);
     }
 
     function setupLighting() {
-      // Ambient light
-      ambientLight = new THREE.AmbientLight(0xffffff, 0.4);
+      // Enhanced ambient light
+      ambientLight = new THREE.AmbientLight(0xffffff, 0.6);
       scene.add(ambientLight);
       
-      // Hemisphere light
-      const hemisphereLight = new THREE.HemisphereLight(0x87CEEB, 0x362d1d, 0.8);
+      // Enhanced hemisphere light for more realistic sky lighting
+      hemisphereLight = new THREE.HemisphereLight(0x87CEEB, 0x362d1d, 1.0);
+      hemisphereLight.position.set(0, 50, 0);
       scene.add(hemisphereLight);
       
-      // Main directional light (sun)
-      directionalLight = new THREE.DirectionalLight(0xffffff, 1.2);
+      // Enhanced main directional light (sun) with better shadows
+      directionalLight = new THREE.DirectionalLight(0xffffff, 1.5);
       directionalLight.position.set(50, 100, 50);
       directionalLight.castShadow = true;
       directionalLight.shadow.mapSize.setScalar(CONFIG.SHADOW_MAP_SIZE);
@@ -1152,27 +1169,50 @@
       directionalLight.shadow.camera.right = 100;
       directionalLight.shadow.camera.top = 100;
       directionalLight.shadow.camera.bottom = -100;
+      directionalLight.shadow.bias = -0.0001;
+      directionalLight.shadow.normalBias = 0.02;
       scene.add(directionalLight);
       
-      // Fill lights with colors
-      const fillLight1 = new THREE.PointLight(0xffd700, 0.3, 50);
-      fillLight1.position.set(-20, 10, -20);
+      // Enhanced fill lights with better positioning
+      const fillLight1 = new THREE.PointLight(0xffd700, 0.5, 80);
+      fillLight1.position.set(-30, 15, -30);
+      fillLight1.castShadow = true;
+      fillLight1.shadow.mapSize.setScalar(1024);
       scene.add(fillLight1);
       
-      const fillLight2 = new THREE.PointLight(0x87ceeb, 0.3, 50);
-      fillLight2.position.set(20, 10, 20);
+      const fillLight2 = new THREE.PointLight(0x87ceeb, 0.5, 80);
+      fillLight2.position.set(30, 15, 30);
+      fillLight2.castShadow = true;
+      fillLight2.shadow.mapSize.setScalar(1024);
       scene.add(fillLight2);
       
-      const fillLight3 = new THREE.PointLight(0xff6b6b, 0.2, 30);
-      fillLight3.position.set(0, 15, -30);
+      const fillLight3 = new THREE.PointLight(0xff6b6b, 0.3, 50);
+      fillLight3.position.set(0, 20, -40);
       scene.add(fillLight3);
+      
+      // Add rim lighting for better model definition
+      const rimLight1 = new THREE.SpotLight(0xffffff, 0.8, 100, Math.PI / 6, 0.3);
+      rimLight1.position.set(-40, 25, 0);
+      rimLight1.target.position.set(0, 0, 0);
+      scene.add(rimLight1);
+      scene.add(rimLight1.target);
+      
+      const rimLight2 = new THREE.SpotLight(0xffffff, 0.8, 100, Math.PI / 6, 0.3);
+      rimLight2.position.set(40, 25, 0);
+      rimLight2.target.position.set(0, 0, 0);
+      scene.add(rimLight2);
+      scene.add(rimLight2.target);
     }
 
     function setupEnvironment() {
-      // Enhanced ground with texture-like appearance
-      const groundGeometry = new THREE.PlaneGeometry(500, 500, 50, 50);
-      const groundMaterial = new THREE.MeshLambertMaterial({ 
-        color: 0x2d3748,
+      // Enhanced ground with realistic materials
+      const groundGeometry = new THREE.PlaneGeometry(500, 500, 100, 100);
+      
+      // Create a more realistic ground material
+      const groundMaterial = new THREE.MeshStandardMaterial({ 
+        color: 0x404040,
+        roughness: 0.8,
+        metalness: 0.1,
         transparent: true,
         opacity: 0.9
       });
@@ -1180,7 +1220,10 @@
       // Add some vertex displacement for more interesting ground
       const positions = groundGeometry.attributes.position;
       for (let i = 0; i < positions.count; i++) {
-        const y = Math.sin(positions.getX(i) * 0.1) * Math.cos(positions.getZ(i) * 0.1) * 0.1;
+        const x = positions.getX(i);
+        const z = positions.getZ(i);
+        const y = Math.sin(x * 0.02) * Math.cos(z * 0.02) * 0.3 + 
+                  Math.sin(x * 0.05) * Math.cos(z * 0.05) * 0.1;
         positions.setY(i, y);
       }
       groundGeometry.computeVertexNormals();
@@ -1190,52 +1233,146 @@
       ground.receiveShadow = true;
       scene.add(ground);
       
-      // Add some atmospheric elements
+      // Add atmospheric elements
       addAtmosphericElements();
+      addEnvironmentGeometry();
       
       // Set initial environment
       changeEnvironment('showroom');
     }
 
     function addAtmosphericElements() {
-      // Add floating particles in 3D space
+      // Enhanced floating particles in 3D space
       const particleGeometry = new THREE.BufferGeometry();
-      const particleCount = 1000;
+      const particleCount = 2000;
       const positions = new Float32Array(particleCount * 3);
+      const colors = new Float32Array(particleCount * 3);
       
       for (let i = 0; i < particleCount * 3; i += 3) {
-        positions[i] = (Math.random() - 0.5) * 200;     // x
-        positions[i + 1] = Math.random() * 50;          // y
-        positions[i + 2] = (Math.random() - 0.5) * 200; // z
+        positions[i] = (Math.random() - 0.5) * 400;     // x
+        positions[i + 1] = Math.random() * 100;          // y
+        positions[i + 2] = (Math.random() - 0.5) * 400; // z
+        
+        // Add some color variation
+        const color = new THREE.Color();
+        color.setHSL(Math.random() * 0.1 + 0.5, 0.3, 0.8);
+        colors[i] = color.r;
+        colors[i + 1] = color.g;
+        colors[i + 2] = color.b;
       }
       
       particleGeometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+      particleGeometry.setAttribute('color', new THREE.BufferAttribute(colors, 3));
       
       const particleMaterial = new THREE.PointsMaterial({
-        color: 0xffffff,
-        size: 0.5,
+        size: 1.0,
         transparent: true,
-        opacity: 0.6,
-        blending: THREE.AdditiveBlending
+        opacity: 0.7,
+        blending: THREE.AdditiveBlending,
+        vertexColors: true
       });
       
       const particles = new THREE.Points(particleGeometry, particleMaterial);
       scene.add(particles);
       
-      // Animate particles
+      // Enhanced particle animation
       function animateParticles() {
         const positions = particles.geometry.attributes.position.array;
+        const time = clock.getElapsedTime();
+        
         for (let i = 1; i < positions.length; i += 3) {
-          positions[i] += 0.01; // Move up
-          if (positions[i] > 50) {
+          positions[i] += 0.02; // Move up
+          
+          // Add some horizontal drift
+          positions[i - 1] += Math.sin(time + i) * 0.001;
+          positions[i + 1] += Math.cos(time + i) * 0.001;
+          
+          if (positions[i] > 100) {
             positions[i] = 0; // Reset to ground level
+            positions[i - 1] = (Math.random() - 0.5) * 400;
+            positions[i + 1] = (Math.random() - 0.5) * 400;
           }
         }
         particles.geometry.attributes.position.needsUpdate = true;
       }
       
-      // Store animation function for use in render loop
       window.animateParticles = animateParticles;
+    }
+
+    function addEnvironmentGeometry() {
+      // Add some basic environment geometry for better immersion
+      const buildingGeometry = new THREE.BoxGeometry(20, 40, 20);
+      const buildingMaterial = new THREE.MeshStandardMaterial({ 
+        color: 0x666666,
+        roughness: 0.7,
+        metalness: 0.3
+      });
+      
+      // Create several buildings around the scene
+      for (let i = 0; i < 8; i++) {
+        const building = new THREE.Mesh(buildingGeometry, buildingMaterial);
+        const angle = (i / 8) * Math.PI * 2;
+        const radius = 150 + Math.random() * 50;
+        
+        building.position.set(
+          Math.cos(angle) * radius,
+          20,
+          Math.sin(angle) * radius
+        );
+        building.scale.y = 0.5 + Math.random() * 1.5;
+        building.castShadow = true;
+        building.receiveShadow = true;
+        scene.add(building);
+        
+        // Add collision for buildings
+        addCollisionBox(building);
+      }
+      
+      // Add some decorative elements
+      const sphereGeometry = new THREE.SphereGeometry(5, 32, 32);
+      const sphereMaterial = new THREE.MeshStandardMaterial({ 
+        color: 0x4a90e2,
+        roughness: 0.2,
+        metalness: 0.8,
+        emissive: 0x001122
+      });
+      
+      for (let i = 0; i < 5; i++) {
+        const sphere = new THREE.Mesh(sphereGeometry, sphereMaterial);
+        sphere.position.set(
+          (Math.random() - 0.5) * 100,
+          5,
+          (Math.random() - 0.5) * 100
+        );
+        sphere.castShadow = true;
+        sphere.receiveShadow = true;
+        scene.add(sphere);
+      }
+    }
+
+    function setupPostProcessing() {
+      composer = new EffectComposer(renderer);
+      
+      const renderPass = new RenderPass(scene, camera);
+      composer.addPass(renderPass);
+      
+      // Add bloom effect for better visual quality
+      const bloomPass = new UnrealBloomPass(
+        new THREE.Vector2(window.innerWidth, window.innerHeight),
+        0.3, // strength
+        0.4, // radius
+        0.85 // threshold
+      );
+      composer.addPass(bloomPass);
+      
+      // Add SSAO for better depth perception (only on desktop for performance)
+      if (!CONFIG.IS_MOBILE) {
+        const ssaoPass = new SSAOPass(scene, camera, window.innerWidth, window.innerHeight);
+        ssaoPass.kernelRadius = 8;
+        ssaoPass.minDistance = 0.005;
+        ssaoPass.maxDistance = 0.1;
+        composer.addPass(ssaoPass);
+      }
     }
 
     // ==================== Enhanced Environment System ====================
@@ -1250,25 +1387,33 @@
       
       const env = CONFIG.ENVIRONMENTS[envName];
       if (env) {
-        // Smooth transition
+        // Smooth transition with enhanced effects
         const currentBg = scene.background.clone();
         const targetBg = env.background.clone();
         
         let progress = 0;
-        const transitionDuration = 1000; // 1 second
+        const transitionDuration = 1500; // 1.5 seconds
         const startTime = performance.now();
         
         function transition() {
           const elapsed = performance.now() - startTime;
           progress = Math.min(elapsed / transitionDuration, 1);
           
-          // Interpolate background color
-          scene.background.lerpColors(currentBg, targetBg, progress);
-          scene.fog.color.lerpColors(currentBg, targetBg, progress);
+          // Smooth easing function
+          const easeProgress = 1 - Math.pow(1 - progress, 3);
           
-          // Update lighting
-          ambientLight.intensity = 0.4 + (env.ambientIntensity - 0.4) * progress;
-          directionalLight.intensity = 1.2 + (env.directionalIntensity - 1.2) * progress;
+          // Interpolate background color
+          scene.background.lerpColors(currentBg, targetBg, easeProgress);
+          scene.fog.color.lerpColors(currentBg, targetBg, easeProgress);
+          
+          // Update lighting with smooth transitions
+          ambientLight.intensity = 0.6 + (env.ambientIntensity - 0.6) * easeProgress;
+          directionalLight.intensity = 1.5 + (env.directionalIntensity - 1.5) * easeProgress;
+          hemisphereLight.intensity = 1.0 + (env.ambientIntensity - 1.0) * easeProgress * 0.5;
+          
+          // Update tone mapping exposure based on environment
+          const targetExposure = envName === 'night' ? 0.8 : envName === 'desert' ? 1.2 : 1.0;
+          renderer.toneMappingExposure = 1.0 + (targetExposure - 1.0) * easeProgress;
           
           if (progress < 1) {
             requestAnimationFrame(transition);
@@ -1290,7 +1435,7 @@
       return names[envName] || 'معرض';
     }
 
-    // ==================== Model Loading ====================
+    // ==================== Enhanced Model Loading ====================
     function loadModel() {
       gltfLoader.load(
         CONFIG.MODEL_URL,
@@ -1303,19 +1448,54 @@
               child.castShadow = true;
               child.receiveShadow = true;
               
-              // Enhanced material properties
+              // Enhanced material properties for PBR
               if (child.material) {
                 child.material.side = THREE.FrontSide;
+                
+                // Convert to StandardMaterial if not already
+                if (!child.material.isMeshStandardMaterial) {
+                  const newMaterial = new THREE.MeshStandardMaterial();
+                  newMaterial.copy(child.material);
+                  newMaterial.metalness = 0.7;
+                  newMaterial.roughness = 0.3;
+                  child.material = newMaterial;
+                }
                 
                 // Improve material quality
                 if (child.material.map) {
                   child.material.map.anisotropy = renderer.capabilities.getMaxAnisotropy();
+                  child.material.map.generateMipmaps = true;
                 }
                 
-                // Add some metallic properties for car parts
+                // Enhanced metallic properties for car parts
                 if (child.material.isMeshStandardMaterial) {
-                  child.material.metalness = Math.min(child.material.metalness + 0.2, 1.0);
-                  child.material.roughness = Math.max(child.material.roughness - 0.1, 0.0);
+                  // Detect car body vs other parts
+                  if (child.name.toLowerCase().includes('body') || 
+                      child.name.toLowerCase().includes('paint')) {
+                    child.material.metalness = 0.9;
+                    child.material.roughness = 0.1;
+                    child.material.clearcoat = 1.0;
+                    child.material.clearcoatRoughness = 0.1;
+                  } else if (child.name.toLowerCase().includes('chrome') || 
+                             child.name.toLowerCase().includes('metal')) {
+                    child.material.metalness = 1.0;
+                    child.material.roughness = 0.05;
+                  } else if (child.name.toLowerCase().includes('glass') || 
+                             child.name.toLowerCase().includes('window')) {
+                    child.material.metalness = 0.0;
+                    child.material.roughness = 0.0;
+                    child.material.transmission = 0.9;
+                    child.material.transparent = true;
+                    child.material.opacity = 0.8;
+                  } else if (child.name.toLowerCase().includes('tire') || 
+                             child.name.toLowerCase().includes('rubber')) {
+                    child.material.metalness = 0.0;
+                    child.material.roughness = 0.9;
+                  } else {
+                    // Default enhancement
+                    child.material.metalness = Math.min(child.material.metalness + 0.3, 1.0);
+                    child.material.roughness = Math.max(child.material.roughness - 0.2, 0.0);
+                  }
                 }
               }
               
@@ -1324,8 +1504,9 @@
             }
           });
           
-          // Position model
+          // Position and scale model appropriately
           model.position.set(0, 0, 0);
+          model.scale.setScalar(1.2); // Slightly larger for better presence
           scene.add(model);
           
           console.log('Model loaded successfully. Collision boxes:', collisionBoxes.length);
@@ -1363,7 +1544,7 @@
       // Apply vertical movement
       const newY = playerObject.position.y + velocity.y * deltaTime;
       
-      // Ground collision
+      // Ground collision with improved detection
       if (newY <= CONFIG.EYE_HEIGHT) {
         playerObject.position.y = CONFIG.EYE_HEIGHT;
         velocity.y = 0;
@@ -1372,7 +1553,7 @@
         playerObject.position.y = newY;
       }
       
-      // Object collision
+      // Enhanced object collision
       handleCollisions(playerObject.position);
       
       // Update position info
@@ -1383,20 +1564,20 @@
       const moveVector = new THREE.Vector3();
       
       if (CONFIG.IS_MOBILE) {
-        // Mobile input
+        // Enhanced mobile input with better sensitivity
         moveVector.x = mobileInput.move.x;
         moveVector.z = mobileInput.move.y;
         
-        // Update camera rotation with sensitivity
-        yaw += mobileInput.look.x * deltaTime * 3 * gameState.settings.mouseSensitivity;
-        pitch += mobileInput.look.y * deltaTime * 3 * gameState.settings.mouseSensitivity;
+        // Update camera rotation with improved sensitivity
+        yaw += mobileInput.look.x * deltaTime * 4 * gameState.settings.mouseSensitivity;
+        pitch += mobileInput.look.y * deltaTime * 4 * gameState.settings.mouseSensitivity;
         pitch = Math.max(-maxPitch, Math.min(maxPitch, pitch));
         
         camera.rotation.order = 'YXZ';
         camera.rotation.y = yaw;
         camera.rotation.x = pitch;
       } else {
-        // Desktop input
+        // Enhanced desktop input
         if (keys.forward) moveVector.z -= 1;
         if (keys.back) moveVector.z += 1;
         if (keys.left) moveVector.x -= 1;
@@ -1408,12 +1589,23 @@
         const speed = gameState.settings.moveSpeed * (keys.run ? CONFIG.RUN_MULTIPLIER : 1.0) * deltaTime;
         
         if (CONFIG.IS_MOBILE) {
-          // Mobile movement (world-relative)
-          const movement = new THREE.Vector3(moveVector.x, 0, moveVector.z);
+          // Enhanced mobile movement (camera-relative)
+          const direction = new THREE.Vector3();
+          camera.getWorldDirection(direction);
+          direction.y = 0;
+          direction.normalize();
+          
+          const right = new THREE.Vector3();
+          right.crossVectors(direction, camera.up).normalize();
+          
+          const movement = new THREE.Vector3();
+          movement.addScaledVector(direction, -moveVector.z);
+          movement.addScaledVector(right, moveVector.x);
           movement.multiplyScalar(speed);
+          
           playerObject.position.add(movement);
         } else {
-          // Desktop movement (camera-relative)
+          // Enhanced desktop movement (camera-relative)
           const direction = new THREE.Vector3();
           camera.getWorldDirection(direction);
           direction.y = 0;
@@ -1460,28 +1652,32 @@
       document.getElementById('positionInfo').textContent = `${x}, ${y}, ${z}`;
     }
 
-    // ==================== Settings System ====================
+    // ==================== Enhanced Settings System ====================
     function setupSettings() {
       const sensitivitySlider = document.getElementById('sensitivitySlider');
       const speedSlider = document.getElementById('speedSlider');
       const jumpSlider = document.getElementById('jumpSlider');
       const shadowSlider = document.getElementById('shadowSlider');
       
+      // Enhanced sensitivity control
       sensitivitySlider.addEventListener('input', (e) => {
         gameState.settings.mouseSensitivity = parseFloat(e.target.value);
         document.getElementById('sensitivityValue').textContent = e.target.value;
       });
       
+      // Enhanced speed control
       speedSlider.addEventListener('input', (e) => {
         gameState.settings.moveSpeed = parseFloat(e.target.value);
         document.getElementById('speedValue').textContent = e.target.value;
       });
       
+      // Enhanced jump control
       jumpSlider.addEventListener('input', (e) => {
         gameState.settings.jumpForce = parseFloat(e.target.value);
         document.getElementById('jumpValue').textContent = e.target.value;
       });
       
+      // Enhanced shadow quality control
       shadowSlider.addEventListener('input', (e) => {
         const quality = parseInt(e.target.value);
         gameState.settings.shadowQuality = quality;
@@ -1489,19 +1685,22 @@
         const qualityNames = ['منخفضة', 'متوسطة', 'عالية'];
         document.getElementById('shadowValue').textContent = qualityNames[quality];
         
-        // Update shadow quality
-        const sizes = [512, 1024, 2048];
-        directionalLight.shadow.mapSize.setScalar(sizes[quality]);
-        directionalLight.shadow.needsUpdate = true;
+        // Update shadow map size based on quality
+        const shadowSizes = [1024, 2048, 4096];
+        const newSize = shadowSizes[quality];
+        
+        directionalLight.shadow.mapSize.setScalar(newSize);
+        directionalLight.shadow.map?.dispose();
+        directionalLight.shadow.map = null;
       });
     }
 
-    // ==================== Input Handling ====================
+    // ==================== Enhanced Event Listeners ====================
     function setupEventListeners() {
       // Window events
       window.addEventListener('resize', onWindowResize);
       
-      // Keyboard events
+      // Enhanced keyboard events
       document.addEventListener('keydown', onKeyDown);
       document.addEventListener('keyup', onKeyUp);
       
@@ -1515,7 +1714,7 @@
         btn.addEventListener('click', () => changeEnvironment(btn.dataset.env));
       });
       
-      // Mobile controls
+      // Enhanced mobile controls
       if (CONFIG.IS_MOBILE) {
         setupMobileControls();
       }
@@ -1554,6 +1753,14 @@
             controls.unlock();
           }
           break;
+        case 'KeyF':
+          // Toggle fullscreen
+          if (!document.fullscreenElement) {
+            document.documentElement.requestFullscreen();
+          } else {
+            document.exitFullscreen();
+          }
+          break;
       }
     }
 
@@ -1584,7 +1791,7 @@
 
     function enterExperience() {
       if (CONFIG.IS_MOBILE) {
-        // Mobile experience
+        // Enhanced mobile experience
         gameState.isPlaying = true;
         document.getElementById('welcomeScreen').style.display = 'none';
         document.getElementById('mobileControls').classList.add('show');
@@ -1592,7 +1799,7 @@
         document.getElementById('envControls').style.display = 'block';
         document.getElementById('statusBar').classList.add('show');
       } else {
-        // Desktop experience
+        // Enhanced desktop experience
         if (controls) {
           controls.lock();
         }
@@ -1607,7 +1814,7 @@
       document.getElementById('settingsPanel').classList.remove('show');
     }
 
-    // ==================== Mobile Controls ====================
+    // ==================== Enhanced Mobile Controls ====================
     function setupMobileControls() {
       setupJoystick('moveJoystick', 'moveStick', (x, y) => {
         mobileInput.move.x = x;
@@ -1615,15 +1822,20 @@
       });
       
       setupJoystick('lookJoystick', 'lookStick', (x, y) => {
-        mobileInput.look.x = -x * 2; // Sensitivity adjustment
-        mobileInput.look.y = -y * 2;
+        mobileInput.look.x = -x * 3; // Enhanced sensitivity
+        mobileInput.look.y = -y * 3;
       });
       
-      // Mobile buttons
+      // Enhanced mobile buttons with haptic feedback
       document.getElementById('jumpBtn').addEventListener('touchstart', (e) => {
         e.preventDefault();
         jump();
         e.target.classList.add('pressed');
+        
+        // Haptic feedback if available
+        if (navigator.vibrate) {
+          navigator.vibrate(50);
+        }
       });
       
       document.getElementById('jumpBtn').addEventListener('touchend', (e) => {
@@ -1669,6 +1881,11 @@
         if (e.touches) {
           container.setPointerCapture && container.setPointerCapture(e.touches[0].identifier);
         }
+        
+        // Haptic feedback
+        if (navigator.vibrate) {
+          navigator.vibrate(30);
+        }
       }
       
       function handleMove(e) {
@@ -1696,7 +1913,7 @@
         onMove(0, 0);
       }
       
-      // Touch events
+      // Enhanced touch events
       container.addEventListener('touchstart', handleStart, { passive: false });
       container.addEventListener('touchmove', handleMove, { passive: false });
       container.addEventListener('touchend', handleEnd);
@@ -1733,13 +1950,22 @@
         lastTime = currentTime;
       }
       
-      renderer.render(scene, camera);
+      // Use composer for post-processing or regular renderer
+      if (composer) {
+        composer.render();
+      } else {
+        renderer.render(scene, camera);
+      }
     }
 
     function onWindowResize() {
       camera.aspect = window.innerWidth / window.innerHeight;
       camera.updateProjectionMatrix();
       renderer.setSize(window.innerWidth, window.innerHeight);
+      
+      if (composer) {
+        composer.setSize(window.innerWidth, window.innerHeight);
+      }
     }
 
     // ==================== Start Application ====================
