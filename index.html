@@ -999,7 +999,7 @@
     let gameState = {
       isPlaying: false,
       canJump: false,
-      currentEnvironment: 'desert',
+      currentEnvironment: 'studio',
       playerPosition: new THREE.Vector3(0, CONFIG.EYE_HEIGHT, 5),
       settings: {
         mouseSensitivity: CONFIG.MOUSE_SENSITIVITY,
@@ -1194,7 +1194,7 @@
       addAtmosphericElements();
       
       // Set initial environment
-      changeEnvironment('desert');
+      changeEnvironment('studio');
     }
 
     function addAtmosphericElements() {
