@@ -3,304 +3,115 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no" />
-  <title>معرض نجوم الجزيرة المطور - تجربة واقعية متكاملة</title>
+  <title>معرض نجوم الجزيرة - الإصدار النهائي</title>
   <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;600;700&display=swap" rel="stylesheet">
   <style>
     :root {
-      --primary: #1e40af;
-      --secondary: #f59e0b;
-      --accent: #06b6d4;
-      --success: #10b981;
-      --bg-dark: #0f172a;
-      --bg-light: #1e293b;
-      --text-light: #f8fafc;
-      --text-muted: #cbd5e1;
-      --glass: rgba(22, 32, 53, 0.6);
-      --glass-border: rgba(255, 255, 255, 0.2);
-      --glass-strong: rgba(30, 41, 59, 0.75);
+      --primary: #3b82f6; --secondary: #f97316; --accent: #14b8a6;
+      --bg-dark: #111827; --bg-light: #1f2937; --text-light: #f9fafb;
+      --text-muted: #9ca3af; --glass: rgba(31, 41, 55, 0.6);
+      --glass-border: rgba(255, 255, 255, 0.15); --glass-strong: rgba(17, 24, 39, 0.75);
     }
-
     * { box-sizing: border-box; }
-
     html, body {
-      height: 100%;
-      margin: 0;
-      padding: 0;
-      background: var(--bg-dark);
-      font-family: 'Cairo', system-ui, sans-serif;
-      overflow: hidden;
-      color: var(--text-light);
+      height: 100%; margin: 0; padding: 0; background: var(--bg-dark);
+      font-family: 'Cairo', system-ui, sans-serif; overflow: hidden; color: var(--text-light);
     }
-
-    #app { position: fixed; inset: 0; }
+    #app { position: fixed; inset: 0; cursor: grab; }
+    #app.looking { cursor: grabbing; }
     canvas { display: block; }
 
     /* --- Loading Screen --- */
     .loading-screen {
-      position: fixed;
-      inset: 0;
-      background: var(--bg-dark);
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      z-index: 1000;
-      transition: opacity 1s ease-out, visibility 1s;
-      transition-delay: 0.5s;
+      position: fixed; inset: 0; background: var(--bg-dark); display: flex;
+      flex-direction: column; align-items: center; justify-content: center;
+      z-index: 1000; transition: opacity 1s ease, visibility 1s; transition-delay: 0.5s;
     }
     .loading-screen.hidden { opacity: 0; visibility: hidden; pointer-events: none; }
     .logo {
-      width: 140px; height: 140px; background: var(--glass-strong);
-      border: 3px solid var(--glass-border); border-radius: 25px;
-      display: flex; align-items: center; justify-content: center;
-      font-size: 28px; font-weight: 700; color: var(--text-light);
-      margin-bottom: 24px; backdrop-filter: blur(15px);
-      animation: logoFloat 3s ease-in-out infinite;
-      box-shadow: 0 20px 40px rgba(0,0,0,0.3);
+      width: 140px; height: 140px; background: var(--glass-strong); border: 3px solid var(--glass-border);
+      border-radius: 25px; display: flex; align-items: center; justify-content: center;
+      font-size: 28px; font-weight: 700; margin-bottom: 24px; backdrop-filter: blur(15px);
+      animation: logoFloat 3s ease-in-out infinite; box-shadow: 0 20px 40px rgba(0,0,0,0.3);
     }
-    @keyframes logoFloat {
-      0%, 100% { transform: translateY(0px) scale(1); }
-      50% { transform: translateY(-10px) scale(1.05); }
-    }
-    .loading-text { color: var(--text-light); font-size: 20px; font-weight: 600; margin-bottom: 12px; }
+    @keyframes logoFloat { 0%, 100% { transform: translateY(0px); } 50% { transform: translateY(-10px); } }
+    .loading-text { font-size: 20px; font-weight: 600; margin-bottom: 12px; }
     .loading-bar { width: 250px; height: 6px; background: var(--glass); border-radius: 3px; overflow: hidden; }
     .loading-progress { height: 100%; background: linear-gradient(90deg, var(--secondary), var(--accent)); width: 0%; transition: width 0.3s ease; }
 
     /* --- UI --- */
-    .ui-container { position: fixed; inset: 0; pointer-events: none; z-index: 100; }
-    
-    /* Crosshair / Reticle */
-    .reticle {
-      position: absolute;
-      top: 50%;
-      left: 50%;
-      width: 20px;
-      height: 20px;
-      transform: translate(-50%, -50%);
-      display: none;
-      pointer-events: none;
+    .ui-container { position: fixed; inset: 0; pointer-events: none; z-index: 100; padding: 20px; }
+    .interaction-prompt {
+      position: absolute; top: 50%; left: 50%; transform: translate(-50%, 80px);
+      background: var(--glass-strong); border: 1px solid var(--glass-border); border-radius: 8px;
+      padding: 8px 16px; font-size: 14px; backdrop-filter: blur(10px);
+      opacity: 0; transition: opacity 0.3s; pointer-events: none;
     }
-    .reticle-dot {
-      position: absolute;
-      top: 50%;
-      left: 50%;
-      width: 6px;
-      height: 6px;
-      background: rgba(255, 255, 255, 0.8);
-      border-radius: 50%;
-      transform: translate(-50%, -50%);
-      transition: all 0.2s ease;
-    }
-    .reticle.interactive .reticle-dot {
-      transform: translate(-50%, -50%) scale(1.8);
-      background: var(--accent);
+    .interaction-prompt.visible { opacity: 1; }
+    .crosshair {
+        position: absolute; top: 50%; left: 50%; width: 4px; height: 4px;
+        background: white; border-radius: 50%; transform: translate(-50%, -50%);
+        box-shadow: 0 0 10px white;
     }
 
-    /* Welcome Screen */
-    .modal-overlay {
-      position: absolute;
-      inset: 0;
-      display: grid;
-      place-items: center;
-      background: rgba(0, 0, 0, 0.7);
-      backdrop-filter: blur(10px);
-      pointer-events: auto;
-      opacity: 1;
-      transition: opacity 0.5s ease;
+    /* --- Control Panel --- */
+    .control-panel {
+      position: absolute; bottom: 20px; right: 20px; width: 300px;
+      background: var(--glass-strong); border: 1px solid var(--glass-border);
+      border-radius: 15px; backdrop-filter: blur(15px);
+      padding: 20px; pointer-events: auto; display: flex; flex-direction: column; gap: 15px;
+      transform: translateY(calc(100% + 20px)); transition: transform 0.5s ease-in-out;
     }
-    .modal-overlay.hidden { opacity: 0; pointer-events: none; }
-    .welcome-card {
-      width: min(600px, 90vw);
-      background: var(--glass-strong);
-      border: 1px solid var(--glass-border);
-      border-radius: 20px;
-      padding: 40px;
-      text-align: center;
-      animation: fadeInScale 0.6s ease-out;
+    .control-panel.visible { transform: translateY(0); }
+    .panel-group { display: flex; flex-direction: column; gap: 10px; }
+    .panel-title { font-weight: 600; margin: 0; text-align: center; padding-bottom: 10px; border-bottom: 1px solid var(--glass-border); }
+    .panel-row { display: flex; justify-content: space-between; align-items: center; }
+    .panel-label { font-size: 14px; font-weight: 500; color: var(--text-muted); }
+    .panel-slider {
+      width: 60%; -webkit-appearance: none; appearance: none; height: 5px;
+      background: var(--glass); border-radius: 5px; outline: none; cursor: pointer;
     }
-    @keyframes fadeInScale {
-      from { opacity: 0; transform: scale(0.9); }
-      to { opacity: 1; transform: scale(1); }
+    .panel-slider::-webkit-slider-thumb {
+      -webkit-appearance: none; appearance: none; width: 18px; height: 18px;
+      background: var(--secondary); border-radius: 50%; border: 2px solid white;
     }
-    .welcome-title { font-size: 28px; font-weight: 700; margin: 0 0 15px; }
-    .welcome-subtitle { font-size: 16px; color: var(--text-muted); margin: 0 0 30px; line-height: 1.6; }
-    .btn {
-      background: linear-gradient(135deg, var(--secondary), var(--accent));
-      color: white; border: none; border-radius: 12px; padding: 14px 28px;
-      font-size: 16px; font-weight: 600; cursor: pointer; transition: all 0.3s ease;
+    .panel-slider::-moz-range-thumb {
+      width: 18px; height: 18px; background: var(--secondary);
+      border-radius: 50%; border: 2px solid white;
     }
-    .btn:hover { transform: translateY(-3px); box-shadow: 0 10px 20px rgba(0,0,0,0.3); }
-
-    /* Minimap */
-    .minimap {
-      position: absolute;
-      bottom: 20px;
-      left: 20px;
-      width: 200px;
-      height: 200px;
-      background: var(--glass-strong);
-      border: 1px solid var(--glass-border);
-      border-radius: 15px;
-      backdrop-filter: blur(10px);
-      overflow: hidden;
-      display: none;
-    }
-    .minimap-player {
-      position: absolute;
-      width: 10px;
-      height: 10px;
-      background: var(--accent);
-      border-radius: 50%;
-      border: 2px solid white;
-      transform: translate(-50%, -50%);
-    }
-    .minimap-car {
-      position: absolute;
-      width: 12px;
-      height: 12px;
-      background: var(--secondary);
-      border-radius: 3px;
-      border: 2px solid white;
-      transform: translate(-50%, -50%);
-    }
-
-    /* Interaction Panel */
-    .interaction-panel {
-      position: absolute;
-      bottom: 20px;
-      right: 20px;
-      background: var(--glass-strong);
-      border: 1px solid var(--glass-border);
-      border-radius: 15px;
-      backdrop-filter: blur(10px);
-      padding: 20px;
-      display: flex;
-      flex-direction: column;
-      gap: 15px;
-      opacity: 0;
-      transform: translateY(20px);
-      transition: all 0.4s ease;
-      pointer-events: none;
-      width: 250px;
-    }
-    .interaction-panel.visible {
-      opacity: 1;
-      transform: translateY(0);
-      pointer-events: auto;
-    }
-    .panel-title { font-weight: 600; margin: 0 0 5px; text-align: center; }
-    .color-swatches { display: flex; gap: 10px; flex-wrap: wrap; justify-content: center; }
+    .color-swatches { display: flex; gap: 8px; flex-wrap: wrap; justify-content: center; }
     .swatch {
-      width: 30px; height: 30px; border-radius: 50%;
-      cursor: pointer; border: 2px solid transparent;
-      transition: all 0.2s ease;
+      width: 25px; height: 25px; border-radius: 50%; cursor: pointer;
+      border: 2px solid transparent; transition: all 0.2s ease;
     }
     .swatch:hover { transform: scale(1.1); }
     .swatch.active { border-color: white; }
-    .toggle-btn {
-      background: var(--glass);
-      border: 1px solid var(--glass-border);
-      color: var(--text-light);
-      padding: 8px 15px;
-      border-radius: 8px;
-      cursor: pointer;
-      transition: background 0.2s ease;
+    .panel-btn {
+      background: var(--glass); border: 1px solid var(--glass-border); color: var(--text-light);
+      padding: 10px 15px; border-radius: 8px; cursor: pointer; transition: background 0.2s ease;
+      font-family: inherit; font-size: 14px; text-align: center;
     }
-    .toggle-btn:hover { background: var(--glass-border); }
-    .toggle-btn.active { background: var(--accent); color: white; }
-
-    /* New styles for lighting control */
-    .panel-control-group {
-      display: flex;
-      flex-direction: column;
-      gap: 8px;
-      align-items: center;
-      padding-top: 10px;
-      border-top: 1px solid var(--glass-border);
-    }
-    .panel-label {
-      font-size: 14px;
-      font-weight: 500;
-      color: var(--text-muted);
-    }
-    .panel-slider {
-      width: 100%;
-      -webkit-appearance: none;
-      appearance: none;
-      height: 5px;
-      background: var(--glass);
-      border-radius: 5px;
-      outline: none;
-      cursor: pointer;
-    }
-    .panel-slider::-webkit-slider-thumb {
-      -webkit-appearance: none;
-      appearance: none;
-      width: 18px;
-      height: 18px;
-      background: var(--secondary);
-      border-radius: 50%;
-      cursor: pointer;
-      border: 2px solid white;
-    }
-    .panel-slider::-moz-range-thumb {
-      width: 18px;
-      height: 18px;
-      background: var(--secondary);
-      border-radius: 50%;
-      cursor: pointer;
-      border: 2px solid white;
-    }
-
-
+    .panel-btn:hover { background: var(--glass-border); }
+    .panel-btn.active { background: var(--accent); color: white; }
+    
     /* Mobile Controls */
     .mobile-controls { display: none; }
     @media (max-width: 768px), (pointer: coarse) {
-      .mobile-controls.visible { display: block; }
-      .joystick-zone {
-        position: absolute;
-        width: 50%;
-        height: 100%;
-        bottom: 0;
-      }
-      .joystick-zone.left { left: 0; }
-      .joystick-zone.right { right: 0; }
-      .joystick-base {
-        position: absolute;
-        width: 120px;
-        height: 120px;
-        background: rgba(30, 41, 59, 0.5);
-        border: 1px solid rgba(255, 255, 255, 0.2);
-        border-radius: 50%;
-        pointer-events: none;
-      }
-      .joystick-stick {
-        position: absolute;
-        width: 60px;
-        height: 60px;
-        background: rgba(245, 158, 11, 0.8);
-        border-radius: 50%;
-        pointer-events: none;
-      }
-      .mobile-btn-jump {
-        position: absolute;
-        bottom: 120px;
-        right: 30px;
-        width: 70px;
-        height: 70px;
-        background: rgba(30, 41, 59, 0.6);
-        border: 1px solid rgba(255, 255, 255, 0.2);
-        border-radius: 50%;
-        pointer-events: auto;
-      }
+        .control-panel { width: calc(100% - 40px); left: 20px; }
+        .mobile-controls.visible { display: block; }
+        .joystick-zone { position: absolute; width: 150px; height: 150px; bottom: 20px; }
+        #move-joystick { left: 20px; }
+        #look-joystick { right: 20px; }
+        .joystick-base { width: 100%; height: 100%; background: rgba(31, 41, 55, 0.5); border-radius: 50%; border: 1px solid var(--glass-border); }
+        .joystick-stick { position: absolute; top: 50%; left: 50%; width: 60px; height: 60px; background: var(--secondary); border-radius: 50%; transform: translate(-50%, -50%); }
     }
   </style>
 
   <script type="importmap">
   {
     "imports": {
-      "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js",
-      "cannon-es": "https://unpkg.com/cannon-es@0.20.0/dist/cannon-es.js"
+      "three": "https://cdn.jsdelivr.net/npm/three@0.164.1/build/three.module.js",
+      "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.164.1/examples/jsm/"
     }
   }
   </script>
@@ -308,89 +119,63 @@
 <body>
   <div class="loading-screen" id="loadingScreen">
     <div class="logo">NAJ</div>
-    <div class="loading-text">جاري تحضير التجربة الفيزيائية الواقعية...</div>
+    <div class="loading-text">جاري بناء العالم الديناميكي...</div>
     <div class="loading-bar"><div class="loading-progress" id="loadingProgress"></div></div>
   </div>
 
   <div id="app"></div>
 
   <div class="ui-container">
-    <div class="reticle" id="reticle"><div class="reticle-dot"></div></div>
-
-    <div class="modal-overlay" id="welcomeScreen">
-      <div class="welcome-card">
-        <h1 class="welcome-title">مرحباً بك في الإصدار المطور</h1>
-        <p class="welcome-subtitle">
-          استكشف العالم الجديد مع فيزياء واقعية، تفاعل متقدم مع السيارة، إضاءة HDRI، واجهة مستخدم احترافية، وأصوات غامرة.
-        </p>
-        <button class="btn" id="enterBtn">ابدأ التجربة</button>
-      </div>
-    </div>
-
-    <div class="minimap" id="minimap">
-      <div class="minimap-player" id="minimapPlayer"></div>
-      <div class="minimap-car" id="minimapCar"></div>
-    </div>
-
-    <div class="interaction-panel" id="interactionPanel">
-      <div class="panel-title">لوحة التحكم بالسيارة</div>
-      <div class="color-swatches" id="colorSwatches"></div>
-      <button class="toggle-btn" id="headlightsBtn">تشغيل المصابيح</button>
-      <div class="panel-control-group">
-        <div class="panel-label">شدة الإضاءة المحيطة</div>
-        <input type="range" min="0.5" max="5" step="0.1" value="2.5" class="panel-slider" id="envIntensitySlider">
-      </div>
+    <div class="crosshair"></div>
+    <div class="interaction-prompt" id="interactionPrompt"></div>
+    <div class="control-panel visible" id="controlPanel">
+        <div class="panel-title">لوحة التحكم الشاملة</div>
+        <div class="panel-group">
+            <div class="panel-row">
+                <span class="panel-label">الوقت</span>
+                <input type="range" min="5" max="19" step="0.1" value="9.5" class="panel-slider" id="timeSlider">
+            </div>
+             <div class="panel-row">
+                <button class="panel-btn" id="rainBtn">☔ تفعيل المطر</button>
+                <button class="panel-btn" id="interiorBtn">💺 دخول السيارة</button>
+            </div>
+        </div>
+        <div class="panel-group">
+            <div class="panel-title">تخصيص السيارة</div>
+            <div class="color-swatches" id="colorSwatches"></div>
+            <button class="panel-btn" id="headlightsBtn">💡 تشغيل المصابيح</button>
+        </div>
     </div>
   </div>
-
+  
   <div class="mobile-controls" id="mobileControls">
-      <div class="joystick-zone left" id="move-zone"></div>
-      <div class="joystick-zone right" id="look-zone"></div>
-      <div class="mobile-btn-jump" id="jumpBtn"></div>
+      <div class="joystick-zone" id="move-joystick"><div class="joystick-base"><div class="joystick-stick"></div></div></div>
+      <div class="joystick-zone" id="look-joystick"><div class="joystick-base"><div class="joystick-stick"></div></div></div>
   </div>
 
   <script src="https://cdnjs.cloudflare.com/ajax/libs/tone/14.7.77/Tone.js"></script>
   <script type="module">
     import * as THREE from "three";
-    import * as CANNON from "cannon-es";
-    import { GLTFLoader } from "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/loaders/GLTFLoader.js";
-    import { DRACOLoader } from "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/loaders/DRACOLoader.js";
-    import { RGBELoader } from "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/loaders/RGBELoader.js";
-    import { RectAreaLightUniformsLib } from 'https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/lights/RectAreaLightUniformsLib.js';
-
-    // --- CONFIGURATION ---
-    const CONFIG = {
-      IS_MOBILE: /Mobi|Android|iPhone|iPad/i.test(navigator.userAgent) || navigator.maxTouchPoints > 0,
-      PLAYER: {
-        MOVE_SPEED: 5.0,
-        RUN_MULTIPLIER: 1.8,
-        JUMP_FORCE: 7.0,
-        MASS: 70,
-        RADIUS: 0.4,
-        HEIGHT: 1.8,
-      },
-      PHYSICS: {
-        GRAVITY: -15,
-        TIMESTEP: 1 / 60,
-      },
-      CAMERA: {
-        SENSITIVITY: 0.002,
-      },
-      MINIMAP: {
-        WORLD_SIZE: 100, // The size of the world area represented by the minimap
-      }
-    };
+    import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
+    import { DRACOLoader } from "three/addons/loaders/DRACOLoader.js";
+    import { Water } from 'three/addons/objects/Water.js';
+    import { Sky } from 'three/addons/objects/Sky.js';
+    import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js';
+    import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
+    import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js';
+    import { SSRPass } from 'three/addons/postprocessing/SSRPass.js';
+    import { GodRaysPass } from 'https://unpkg.com/three-good-god-rays-pass@1.2.1/build/GodRaysPass.js';
 
     class UltimateShowroom {
       constructor() {
         this.initDOM();
         this.initCore();
-        this.initPhysics();
         this.initAudio();
         this.initLoaders();
-        this.initScene();
+        this.initEnvironment();
         this.initPlayer();
         this.initControls();
+        this.initPostProcessing();
         this.loadAssets();
         this.animate();
       }
@@ -400,16 +185,13 @@
           app: document.getElementById('app'),
           loadingScreen: document.getElementById('loadingScreen'),
           loadingProgress: document.getElementById('loadingProgress'),
-          welcomeScreen: document.getElementById('welcomeScreen'),
-          enterBtn: document.getElementById('enterBtn'),
-          reticle: document.getElementById('reticle'),
-          minimap: document.getElementById('minimap'),
-          minimapPlayer: document.getElementById('minimapPlayer'),
-          minimapCar: document.getElementById('minimapCar'),
-          interactionPanel: document.getElementById('interactionPanel'),
+          interactionPrompt: document.getElementById('interactionPrompt'),
+          controlPanel: document.getElementById('controlPanel'),
+          timeSlider: document.getElementById('timeSlider'),
+          rainBtn: document.getElementById('rainBtn'),
+          interiorBtn: document.getElementById('interiorBtn'),
           colorSwatches: document.getElementById('colorSwatches'),
           headlightsBtn: document.getElementById('headlightsBtn'),
-          envIntensitySlider: document.getElementById('envIntensitySlider'),
           mobileControls: document.getElementById('mobileControls'),
         };
       }
@@ -421,244 +203,188 @@
         this.renderer.setSize(window.innerWidth, window.innerHeight);
         this.renderer.outputColorSpace = THREE.SRGBColorSpace;
         this.renderer.toneMapping = THREE.ACESFilmicToneMapping;
-        this.renderer.toneMappingExposure = 1.2; // Increased for brightness
         this.renderer.shadowMap.enabled = true;
         this.renderer.shadowMap.type = THREE.PCFSoftShadowMap;
         this.dom.app.appendChild(this.renderer.domElement);
 
-        this.camera = new THREE.PerspectiveCamera(70, window.innerWidth / window.innerHeight, 0.1, 1000);
-        this.scene.add(this.camera);
-
+        this.camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 20000);
         this.clock = new THREE.Clock();
         this.raycaster = new THREE.Raycaster();
-        this.interactiveObject = null;
-        this.carModel = null;
-        this.headlightsOn = false;
-      }
-
-      initPhysics() {
-        this.physicsWorld = new CANNON.World({ gravity: new CANNON.Vec3(0, CONFIG.PHYSICS.GRAVITY, 0) });
-        this.physicsObjects = []; // To sync Three.js and Cannon.js objects
+        this.mouse = new THREE.Vector2();
+        this.state = { inCar: false, headlightsOn: false, isRaining: false };
       }
 
       initAudio() {
         this.audio = {
-          synth: new Tone.Synth().toDestination(),
-          footsteps: new Tone.MembraneSynth({ pitchDecay: 0.01, octaves: 6, envelope: { attack: 0.001, decay: 0.2, sustain: 0 } }).toDestination(),
-          jump: new Tone.MetalSynth({ frequency: 200, envelope: { attack: 0.001, decay: 0.1, release: 0.01 }, harmonicity: 5.1, modulationIndex: 32, resonance: 4000, octaves: 1.5 }).toDestination(),
+            engine: new Tone.Player({ url: "https://cdn.freesound.org/previews/573/573420_7994920-lq.mp3", loop: true }).toDestination(),
+            rain: new Tone.Player({ url: "https://cdn.freesound.org/previews/343/343330_5121236-lq.mp3", loop: true, volume: -10 }).toDestination(),
+            doorOpen: new Tone.Player("https://cdn.freesound.org/previews/211/211985_2339069-lq.mp3").toDestination(),
+            doorClose: new Tone.Player("https://cdn.freesound.org/previews/211/211984_2339069-lq.mp3").toDestination(),
+            uiClick: new Tone.MembraneSynth({ pitchDecay: 0.01, octaves: 6, envelope: { attack: 0.001, decay: 0.2, sustain: 0 } }).toDestination(),
         };
-        this.lastStepTime = 0;
       }
 
       initLoaders() {
         this.loadingManager = new THREE.LoadingManager(
           () => this.dom.loadingScreen.classList.add('hidden'),
-          (url, loaded, total) => {
-            this.dom.loadingProgress.style.width = `${(loaded / total) * 100}%`;
-          }
+          (url, loaded, total) => { this.dom.loadingProgress.style.width = `${(loaded / total) * 100}%`; }
         );
         const dracoLoader = new DRACOLoader(this.loadingManager).setDecoderPath('https://www.gstatic.com/draco/v1/decoders/');
         this.gltfLoader = new GLTFLoader(this.loadingManager).setDRACOLoader(dracoLoader);
-        this.rgbeLoader = new RGBELoader(this.loadingManager);
+        this.textureLoader = new THREE.TextureLoader(this.loadingManager);
       }
 
-      initScene() {
-        // Ground plane
-        const groundMaterial = new CANNON.Material('ground');
-        const groundBody = new CANNON.Body({
-          type: CANNON.Body.STATIC,
-          shape: new CANNON.Plane(),
-          material: groundMaterial,
+      initEnvironment() {
+        // Sky
+        this.sky = new Sky();
+        this.sky.scale.setScalar(10000);
+        this.scene.add(this.sky);
+        this.sun = new THREE.Vector3();
+        this.updateSunPosition(this.dom.timeSlider.value);
+
+        // Water
+        const waterGeometry = new THREE.PlaneGeometry(10000, 10000);
+        this.water = new Water(waterGeometry, {
+            textureWidth: 512, textureHeight: 512,
+            waterNormals: this.textureLoader.load('https://raw.githubusercontent.com/mrdoob/three.js/master/examples/textures/waternormals.jpg', (texture) => {
+                texture.wrapS = texture.wrapT = THREE.RepeatWrapping;
+            }),
+            sunDirection: new THREE.Vector3(), sunColor: 0xffffff,
+            waterColor: 0x001e0f, distortionScale: 3.7,
+            fog: this.scene.fog !== undefined
         });
-        groundBody.quaternion.setFromEuler(-Math.PI / 2, 0, 0);
-        this.physicsWorld.addBody(groundBody);
+        this.water.rotation.x = -Math.PI / 2;
+        this.scene.add(this.water);
 
-        const groundMesh = new THREE.Mesh(
-          new THREE.PlaneGeometry(200, 200),
-          new THREE.MeshStandardMaterial({ color: 0x444444, roughness: 0.8, metalness: 0.2 })
-        );
-        groundMesh.rotation.x = -Math.PI / 2;
-        groundMesh.receiveShadow = true;
-        this.scene.add(groundMesh);
+        // Terrain
+        const terrainGeometry = new THREE.PlaneGeometry(500, 500, 100, 100);
+        const pos = terrainGeometry.attributes.position;
+        for (let i = 0; i < pos.count; i++){
+            const y = 5 * Math.sin(pos.getX(i) / 10) * Math.cos(pos.getZ(i) / 10);
+            pos.setY(i, y);
+        }
+        terrainGeometry.computeVertexNormals();
+        const terrainMaterial = new THREE.MeshStandardMaterial({ color: 0x40513B, roughness: 0.8 });
+        const terrain = new THREE.Mesh(terrainGeometry, terrainMaterial);
+        terrain.receiveShadow = true;
+        this.scene.add(terrain);
 
-        // --- Studio Lighting Setup ---
-        RectAreaLightUniformsLib.init();
-        const rectLightWidth = 8;
-        const rectLightHeight = 10;
-        const rectLightIntensity = 15;
-        this.studioLights = new THREE.Group();
-
-        const rectLight1 = new THREE.RectAreaLight(0xffffff, rectLightIntensity, rectLightWidth, rectLightHeight);
-        rectLight1.position.set(-10, 8, 5);
-        this.studioLights.add(rectLight1);
-
-        const rectLight2 = new THREE.RectAreaLight(0xffffff, rectLightIntensity, rectLightWidth, rectLightHeight);
-        rectLight2.position.set(10, 8, 5);
-        this.studioLights.add(rectLight2);
-
-        const rectLight3 = new THREE.RectAreaLight(0xffffff, rectLightIntensity * 0.7, rectLightWidth * 1.5, rectLightHeight * 0.5);
-        rectLight3.position.set(0, 12, -10);
-        this.studioLights.add(rectLight3);
-        this.scene.add(this.studioLights);
-
-        // Add some dynamic physics objects
-        this.addPhysicsSphere(0.5, new THREE.Vector3(2, 5, -2));
-        this.addPhysicsSphere(0.5, new THREE.Vector3(2.5, 6, -2.5));
-        this.addPhysicsBox(new THREE.Vector3(1, 1, 1), new THREE.Vector3(-3, 5, 0));
+        // Rain
+        const rainCount = 15000;
+        const rainGeo = new THREE.BufferGeometry();
+        const positions = new Float32Array(rainCount * 3);
+        for(let i=0; i < rainCount; i++) {
+            positions[i*3] = Math.random() * 400 - 200;
+            positions[i*3+1] = Math.random() * 500 - 250;
+            positions[i*3+2] = Math.random() * 400 - 200;
+        }
+        rainGeo.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+        const rainMaterial = new THREE.PointsMaterial({ color: 0xaaaaaa, size: 0.1, transparent: true });
+        this.rain = new THREE.Points(rainGeo, rainMaterial);
+        this.rain.visible = false;
+        this.scene.add(this.rain);
       }
 
-      addPhysicsSphere(radius, position) {
-        const sphereBody = new CANNON.Body({
-          mass: 5,
-          shape: new CANNON.Sphere(radius),
-          position: new CANNON.Vec3(position.x, position.y, position.z),
-        });
-        this.physicsWorld.addBody(sphereBody);
-        
-        const sphereMesh = new THREE.Mesh(
-          new THREE.SphereGeometry(radius),
-          new THREE.MeshStandardMaterial({ color: 0xffa500, roughness: 0.2, metalness: 0.8 })
-        );
-        sphereMesh.castShadow = true;
-        this.scene.add(sphereMesh);
-        this.physicsObjects.push({ mesh: sphereMesh, body: sphereBody });
+      updateSunPosition(time) {
+          const phi = THREE.MathUtils.degToRad(90 - (time - 5) / 14 * 180); // 5am to 7pm
+          const theta = THREE.MathUtils.degToRad(180);
+          this.sun.setFromSphericalCoords(1, phi, theta);
+          this.sky.material.uniforms['sunPosition'].value.copy(this.sun);
+          this.water.material.uniforms['sunDirection'].value.copy(this.sun).normalize();
+          if(this.godRaysPass) this.godRaysPass.setLightSun(this.sun);
       }
-
-      addPhysicsBox(size, position) {
-          const boxBody = new CANNON.Body({
-              mass: 10,
-              shape: new CANNON.Box(new CANNON.Vec3(size.x / 2, size.y / 2, size.z / 2)),
-              position: new CANNON.Vec3(position.x, position.y, position.z),
-          });
-          this.physicsWorld.addBody(boxBody);
-          const boxMesh = new THREE.Mesh(
-              new THREE.BoxGeometry(size.x, size.y, size.z),
-              new THREE.MeshStandardMaterial({ color: 0x06b6d4, roughness: 0.4, metalness: 0.5 })
-          );
-          boxMesh.castShadow = true;
-          this.scene.add(boxMesh);
-          this.physicsObjects.push({ mesh: boxMesh, body: boxBody });
-      }
-
+      
       initPlayer() {
-        this.player = {};
-        this.player.body = new CANNON.Body({
-          mass: CONFIG.PLAYER.MASS,
-          shape: new CANNON.Sphere(CONFIG.PLAYER.RADIUS),
-          position: new CANNON.Vec3(0, 5, 10),
-          fixedRotation: true,
-        });
-        this.physicsWorld.addBody(this.player.body);
-
-        this.player.velocity = new THREE.Vector3();
-        this.player.input = { forward: 0, right: 0, run: false, jump: false };
-        this.player.onGround = false;
-
-        // Add collision listener to detect if player is on the ground
-        this.player.body.addEventListener('collide', (event) => {
-            const contactNormal = new CANNON.Vec3();
-            if (event.contact) {
-                // Check if the contact is with the ground
-                const contact = event.contact;
-                const isGroundContact = contact.bi.id === this.player.body.id ? contact.ni.y > 0.5 : -contact.ni.y > 0.5;
-                if (isGroundContact) {
-                    this.player.onGround = true;
-                }
-            }
-        });
+        this.player = {
+            velocity: new THREE.Vector3(),
+            speed: 8.0,
+            runMultiplier: 2.0,
+            jumpForce: 10.0,
+            gravity: -25.0,
+            onGround: false,
+            input: { forward: 0, right: 0, run: false, jump: false },
+            isLooking: false
+        };
+        this.camera.position.set(0, 2, 10);
       }
 
       initControls() {
-        this.isLocked = false;
-        document.addEventListener('click', () => {
-          if (!this.isLocked) {
-            this.dom.app.requestPointerLock();
+        // Desktop
+        this.dom.app.addEventListener('mousedown', (e) => { if (e.button === 2) { this.player.isLooking = true; this.dom.app.classList.add('looking'); } });
+        this.dom.app.addEventListener('mouseup', (e) => { if (e.button === 2) { this.player.isLooking = false; this.dom.app.classList.remove('looking'); } });
+        this.dom.app.addEventListener('mousemove', (e) => {
+          if (this.player.isLooking) {
+            this.camera.rotation.y -= e.movementX * 0.002;
+            this.camera.rotation.x -= e.movementY * 0.002;
+            this.camera.rotation.x = Math.max(-Math.PI / 2, Math.min(Math.PI / 2, this.camera.rotation.x));
           }
+           this.mouse.x = (e.clientX / window.innerWidth) * 2 - 1;
+           this.mouse.y = -(e.clientY / window.innerHeight) * 2 + 1;
         });
-
-        document.addEventListener('pointerlockchange', () => {
-          this.isLocked = document.pointerLockElement === this.dom.app;
-          this.dom.welcomeScreen.classList.toggle('hidden', this.isLocked);
-          this.dom.reticle.style.display = this.isLocked ? 'block' : 'none';
-          this.dom.minimap.style.display = this.isLocked ? 'block' : 'none';
-          if (CONFIG.IS_MOBILE) {
-            this.dom.mobileControls.classList.toggle('visible', this.isLocked);
-          }
-        });
-
-        // Keyboard
+        this.dom.app.addEventListener('contextmenu', e => e.preventDefault());
         document.addEventListener('keydown', (e) => this.handleKey(e.code, true));
         document.addEventListener('keyup', (e) => this.handleKey(e.code, false));
 
-        // Mouse Look
-        document.addEventListener('mousemove', (e) => {
-          if (this.isLocked) {
-            this.camera.rotation.y -= e.movementX * CONFIG.CAMERA.SENSITIVITY;
-            this.camera.rotation.x -= e.movementY * CONFIG.CAMERA.SENSITIVITY;
-            this.camera.rotation.x = Math.max(-Math.PI / 2, Math.min(Math.PI / 2, this.camera.rotation.x));
-          }
-        });
-
-        // UI Buttons
-        this.dom.enterBtn.addEventListener('click', () => this.dom.app.requestPointerLock());
+        // UI Listeners
+        this.dom.timeSlider.addEventListener('input', (e) => this.updateSunPosition(e.target.value));
+        this.dom.rainBtn.addEventListener('click', () => this.toggleRain());
+        this.dom.interiorBtn.addEventListener('click', () => this.toggleInteriorView());
         this.dom.headlightsBtn.addEventListener('click', () => this.toggleHeadlights());
-        this.dom.envIntensitySlider.addEventListener('input', (e) => {
-            this.scene.environmentIntensity = parseFloat(e.target.value);
-        });
-
-        if (CONFIG.IS_MOBILE) this.initMobileControls();
-      }
-
-      initMobileControls() {
-        // Implementation for mobile joystick and buttons
+        this.dom.app.addEventListener('click', (e) => this.handleInteractionClick(e));
       }
 
       handleKey(code, isDown) {
         switch(code) {
-          case 'KeyW': case 'ArrowUp': this.player.input.forward = isDown ? 1 : 0; break;
-          case 'KeyS': case 'ArrowDown': this.player.input.forward = isDown ? -1 : 0; break;
-          case 'KeyA': case 'ArrowLeft': this.player.input.right = isDown ? -1 : 0; break;
-          case 'KeyD': case 'ArrowRight': this.player.input.right = isDown ? 1 : 0; break;
+          case 'KeyW': this.player.input.forward = isDown ? 1 : 0; break;
+          case 'KeyS': this.player.input.forward = isDown ? -1 : 0; break;
+          case 'KeyA': this.player.input.right = isDown ? -1 : 0; break;
+          case 'KeyD': this.player.input.right = isDown ? 1 : 0; break;
           case 'ShiftLeft': this.player.input.run = isDown; break;
           case 'Space': if (isDown) this.player.input.jump = true; break;
         }
       }
+      
+      initPostProcessing() {
+        this.composer = new EffectComposer(this.renderer);
+        this.composer.addPass(new RenderPass(this.scene, this.camera));
+        
+        this.ssrPass = new SSRPass({
+            renderer: this.renderer, scene: this.scene, camera: this.camera,
+            width: window.innerWidth, height: window.innerHeight,
+            groundReflector: null, selects: null
+        });
+        this.composer.addPass(this.ssrPass);
+        
+        this.composer.addPass(new UnrealBloomPass(new THREE.Vector2(window.innerWidth, window.innerHeight), 0.5, 0.4, 0.85));
+        
+        this.godRaysPass = new GodRaysPass(this.scene, this.camera, this.renderer, {
+            sun: this.sun, density: 0.96, maxDensity: 0.98,
+        });
+        this.composer.addPass(this.godRaysPass);
+      }
 
       loadAssets() {
-        this.rgbeLoader.load('https://dl.polyhaven.org/file/ph-assets/HDRIs/hdr/1k/empty_warehouse_01_1k.hdr', (texture) => {
-            texture.mapping = THREE.EquirectangularReflectionMapping;
-            this.scene.environment = texture;
-            this.scene.background = texture;
-            this.scene.backgroundBlurriness = 0.5;
-            this.scene.environmentIntensity = 2.5; // Increased default intensity
-            this.dom.envIntensitySlider.value = 2.5; // Sync slider
-        });
-
         this.gltfLoader.load('https://raw.githubusercontent.com/kanawattown-a11y/12/f91219369eb76bb2e445f95abaa61860e3b886dd/naj.glb', (gltf) => {
-          this.carModel = gltf.scene;
-          this.carModel.scale.setScalar(1.2);
-          this.carModel.position.y = 0.1; // Lift slightly to avoid z-fighting
-          this.scene.add(this.carModel);
+          this.car = { model: gltf.scene, doors: [], headlights: [] };
+          this.car.model.scale.setScalar(1.2);
+          this.car.model.position.y = 0.5;
+          this.scene.add(this.car.model);
 
-          const carBody = new CANNON.Body({
-            mass: 0,
-            shape: new CANNON.Box(new CANNON.Vec3(2, 1, 4.5)),
-            position: new CANNON.Vec3(0, 1, 0)
-          });
-          this.physicsWorld.addBody(carBody);
-
-          this.carPaintMaterial = null;
-          this.headlights = [];
-          this.carModel.traverse(child => {
+          this.car.model.traverse(child => {
             if (child.isMesh) {
               child.castShadow = true;
               child.receiveShadow = true;
-              if (child.material.name === 'paint_main') {
-                this.carPaintMaterial = child.material;
-                this.carPaintMaterial.metalness = 1.0;
-                this.carPaintMaterial.roughness = 0.2;
-                this.carPaintMaterial.clearcoat = 1.0;
-                this.carPaintMaterial.clearcoatRoughness = 0.1;
+              if (child.material.name === 'paint_main') this.car.paintMaterial = child.material;
+              if (child.name.toLowerCase().includes('door')) {
+                  const pivot = new THREE.Object3D();
+                  const doorWrapper = new THREE.Object3D();
+                  child.getWorldPosition(doorWrapper.position);
+                  pivot.position.copy(doorWrapper.position);
+                  pivot.add(doorWrapper);
+                  doorWrapper.add(child);
+                  child.position.set(0,0,0);
+                  this.car.model.add(pivot);
+                  this.car.doors.push({ mesh: child, wrapper: doorWrapper, pivot: pivot, isOpen: false, openAngle: child.name.includes('_l') ? Math.PI / 2.5 : -Math.PI / 2.5 });
               }
               if (child.name.toLowerCase().includes('headlight_glass')) {
                 const light = new THREE.SpotLight(0xffffff, 0, 20, Math.PI / 4, 0.5, 2);
@@ -666,150 +392,151 @@
                 child.add(light);
                 light.target.position.set(0, 0, 10);
                 child.add(light.target);
-                this.headlights.push(light);
+                this.car.headlights.push(light);
               }
             }
           });
           this.populateColorSwatches();
-          
-          // Ensure studio lights target the car's center
-          const carBox = new THREE.Box3().setFromObject(this.carModel);
-          const carCenter = carBox.getCenter(new THREE.Vector3());
-          carCenter.y += 1; // Aim slightly higher than the floor
-          this.studioLights.children.forEach(light => {
-              light.lookAt(carCenter);
-          });
         });
       }
 
       populateColorSwatches() {
         const colors = [0xff0000, 0x0000ff, 0x00ff00, 0xffff00, 0xffa500, 0x800080, 0x000000, 0xffffff, 0x808080, 0x4d6172];
-        this.dom.colorSwatches.innerHTML = '';
-        colors.forEach((color, index) => {
+        colors.forEach((color, i) => {
           const swatch = document.createElement('div');
-          swatch.className = 'swatch';
-          if (index === 8) swatch.classList.add('active');
+          swatch.className = 'swatch' + (i === 8 ? ' active' : '');
           swatch.style.background = `#${new THREE.Color(color).getHexString()}`;
           swatch.addEventListener('click', () => {
-            if (this.carPaintMaterial) {
-              this.carPaintMaterial.color.set(color);
-              this.audio.synth.triggerAttackRelease("C4", "8n");
-              document.querySelector('.swatch.active')?.classList.remove('active');
-              swatch.classList.add('active');
-            }
+            if (this.car.paintMaterial) this.car.paintMaterial.color.set(color);
+            this.audio.uiClick.triggerAttackRelease("C4", "8n");
+            document.querySelector('.swatch.active')?.classList.remove('active');
+            swatch.classList.add('active');
           });
           this.dom.colorSwatches.appendChild(swatch);
         });
       }
 
+      handleInteractionClick(event) {
+        if (this.player.isLooking || !this.hoveredObject) return;
+        
+        const door = this.car.doors.find(d => d.mesh === this.hoveredObject);
+        if (door) {
+            door.isOpen = !door.isOpen;
+            door.isOpen ? this.audio.doorOpen.start() : this.audio.doorClose.start();
+        }
+      }
+
+      toggleRain() {
+        this.state.isRaining = !this.state.isRaining;
+        this.rain.visible = this.state.isRaining;
+        this.dom.rainBtn.classList.toggle('active', this.state.isRaining);
+        this.dom.rainBtn.innerHTML = this.state.isRaining ? '☀️ إيقاف المطر' : '☔ تفعيل المطر';
+        this.state.isRaining ? this.audio.rain.start() : this.audio.rain.stop();
+      }
+
+      toggleInteriorView() {
+        this.state.inCar = !this.state.inCar;
+        this.dom.interiorBtn.classList.toggle('active', this.state.inCar);
+        this.dom.interiorBtn.innerHTML = this.state.inCar ? '🚪 الخروج من السيارة' : '💺 دخول السيارة';
+        if (this.state.inCar) {
+            this.audio.engine.start();
+            this.car.model.getWorldPosition(this.camera.position);
+            this.camera.position.set(-0.5, 1.5, 0.5); // Driver seat position relative to car
+        } else {
+            this.audio.engine.stop();
+            this.car.model.getWorldPosition(this.camera.position);
+            this.camera.position.x += 5; // Exit position
+        }
+      }
+      
       toggleHeadlights() {
-        this.headlightsOn = !this.headlightsOn;
-        this.dom.headlightsBtn.classList.toggle('active', this.headlightsOn);
-        this.dom.headlightsBtn.textContent = this.headlightsOn ? 'إطفاء المصابيح' : 'تشغيل المصابيح';
-        this.headlights.forEach(light => {
-          light.intensity = this.headlightsOn ? 200 : 0;
-        });
-        this.audio.synth.triggerAttackRelease(this.headlightsOn ? "G4" : "F4", "8n");
+        this.state.headlightsOn = !this.state.headlightsOn;
+        this.dom.headlightsBtn.classList.toggle('active', this.state.headlightsOn);
+        this.car.headlights.forEach(light => light.intensity = this.state.headlightsOn ? 200 : 0);
       }
 
       updatePlayer(deltaTime) {
-        const speed = CONFIG.PLAYER.MOVE_SPEED * (this.player.input.run ? CONFIG.PLAYER.RUN_MULTIPLIER : 1);
-        
-        const forward = new THREE.Vector3();
-        this.camera.getWorldDirection(forward);
-        forward.y = 0;
-        forward.normalize();
-        
-        const right = new THREE.Vector3();
-        right.crossVectors(this.camera.up, forward).normalize();
-        
-        const moveDir = new THREE.Vector3();
-        moveDir.addScaledVector(forward, this.player.input.forward);
-        moveDir.addScaledVector(right, this.player.input.right);
-        moveDir.normalize().multiplyScalar(speed);
+        if (this.state.inCar) return;
 
-        this.player.body.velocity.x = moveDir.x;
-        this.player.body.velocity.z = moveDir.z;
+        // Gravity
+        if (!this.player.onGround) this.player.velocity.y += this.player.gravity * deltaTime;
+        
+        // Movement
+        const speed = this.player.speed * (this.player.input.run ? this.player.runMultiplier : 1);
+        const moveDir = new THREE.Vector3(this.player.input.right, 0, this.player.input.forward).normalize();
+        const movement = new THREE.Vector3();
+        if (moveDir.length() > 0) {
+            const forward = new THREE.Vector3();
+            this.camera.getWorldDirection(forward);
+            forward.y = 0;
+            forward.normalize();
+            const right = new THREE.Vector3().crossVectors(this.camera.up, forward);
+            movement.addScaledVector(forward, moveDir.z * speed * deltaTime);
+            movement.addScaledVector(right, moveDir.x * speed * deltaTime);
+        }
+        this.camera.position.add(movement);
 
+        // Jump
         if (this.player.input.jump && this.player.onGround) {
-            this.player.body.velocity.y = CONFIG.PLAYER.JUMP_FORCE;
+            this.player.velocity.y = this.player.jumpForce;
             this.player.onGround = false;
-            this.player.input.jump = false;
-            this.audio.jump.triggerAttackRelease("C4", "8n", Tone.now());
         }
-
-        // Play footstep sounds
-        const now = this.clock.getElapsedTime();
-        if ((Math.abs(this.player.body.velocity.x) > 1 || Math.abs(this.player.body.velocity.z) > 1) && this.player.onGround) {
-            const stepInterval = this.player.input.run ? 0.25 : 0.4;
-            if (now - this.lastStepTime > stepInterval) {
-                this.audio.footsteps.triggerAttackRelease("C2", "8n", Tone.now(), Math.random() * 0.5 + 0.5);
-                this.lastStepTime = now;
-            }
-        }
-      }
-
-      updateUI() {
-        if (this.carModel) {
-            const distance = this.camera.position.distanceTo(this.carModel.position);
-            this.dom.interactionPanel.classList.toggle('visible', distance < 8 && this.isLocked);
-        }
+        this.player.input.jump = false;
         
-        // Update minimap
-        const mapSize = 200; // minimap width/height in pixels
-        const worldSize = CONFIG.MINIMAP.WORLD_SIZE;
-        this.dom.minimapPlayer.style.left = `${(this.camera.position.x / worldSize + 0.5) * mapSize}px`;
-        this.dom.minimapPlayer.style.top = `${(-this.camera.position.z / worldSize + 0.5) * mapSize}px`;
-        if (this.carModel) {
-            this.dom.minimapCar.style.left = `${(this.carModel.position.x / worldSize + 0.5) * mapSize}px`;
-            this.dom.minimapCar.style.top = `${(-this.carModel.position.z / worldSize + 0.5) * mapSize}px`;
-        }
+        this.camera.position.y += this.player.velocity.y * deltaTime;
 
-        // Update reticle
-        this.raycaster.setFromCamera({x: 0, y: 0}, this.camera);
-        const intersects = this.raycaster.intersectObjects(this.scene.children, true);
-        let isInteractive = false;
-        if (intersects.length > 0) {
-            const firstIntersect = intersects[0];
-            if (this.carModel && firstIntersect.object.parent?.parent === this.carModel && firstIntersect.distance < 8) {
-                isInteractive = true;
-            }
+        // Ground collision
+        if (this.camera.position.y < 1.8) {
+            this.camera.position.y = 1.8;
+            this.player.velocity.y = 0;
+            this.player.onGround = true;
         }
-        this.dom.reticle.classList.toggle('interactive', isInteractive);
       }
 
+      updateInteractions() {
+        this.raycaster.setFromCamera(this.mouse, this.camera);
+        const doorMeshes = this.car.doors.map(d => d.mesh);
+        const intersects = this.raycaster.intersectObjects(doorMeshes);
+
+        if (intersects.length > 0 && intersects[0].distance < 5) {
+            this.hoveredObject = intersects[0].object;
+            this.dom.interactionPrompt.textContent = `انقر لفتح/إغلاق الباب`;
+            this.dom.interactionPrompt.classList.add('visible');
+        } else {
+            this.hoveredObject = null;
+            this.dom.interactionPrompt.classList.remove('visible');
+        }
+      }
+      
       animate() {
         requestAnimationFrame(() => this.animate());
-        const deltaTime = Math.min(this.clock.getDelta(), 0.1);
+        const deltaTime = this.clock.getDelta();
+        
+        this.water.material.uniforms['time'].value += 1.0 / 60.0;
+        
+        if(this.state.isRaining) {
+            const positions = this.rain.geometry.attributes.position.array;
+            for (let i = 0; i < positions.length; i+=3) {
+                positions[i+1] -= 50 * deltaTime;
+                if (positions[i+1] < -200) positions[i+1] = 200;
+            }
+            this.rain.geometry.attributes.position.needsUpdate = true;
+        }
 
-        if (this.isLocked) {
-          this.updatePlayer(deltaTime);
+        if (this.car) {
+            this.updateInteractions();
+            this.car.doors.forEach(door => {
+                const targetAngle = door.isOpen ? door.openAngle : 0;
+                door.pivot.rotation.y = THREE.MathUtils.lerp(door.pivot.rotation.y, targetAngle, deltaTime * 5);
+            });
         }
         
-        this.physicsWorld.step(CONFIG.PHYSICS.TIMESTEP, deltaTime);
-
-        this.camera.position.copy(this.player.body.position);
-        this.camera.position.y += CONFIG.PLAYER.HEIGHT / 2;
-
-        this.physicsObjects.forEach(obj => {
-          obj.mesh.position.copy(obj.body.position);
-          obj.mesh.quaternion.copy(obj.body.quaternion);
-        });
-
-        this.updateUI();
-        this.renderer.render(this.scene, this.camera);
-      }
-
-      onWindowResize() {
-        this.camera.aspect = window.innerWidth / window.innerHeight;
-        this.camera.updateProjectionMatrix();
-        this.renderer.setSize(window.innerWidth, window.innerHeight);
+        this.updatePlayer(deltaTime);
+        this.composer.render();
       }
     }
 
-    window.addEventListener('load', () => {
-      new UltimateShowroom();
-    });
+    window.addEventListener('load', () => new UltimateShowroom());
   </script>
 </body>
 </html>
