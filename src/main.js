@@ -1,6 +1,6 @@
-import * as THREE from "https://unpkg.com/three@0.160.0/build/three.module.js";
-import { GLTFLoader } from "https://unpkg.com/three@0.160.0/examples/jsm/loaders/GLTFLoader.js";
-import { DRACOLoader } from "https://unpkg.com/three@0.160.0/examples/jsm/loaders/DRACOLoader.js";
+import * as THREE from "../build/three.module.js";
+import { GLTFLoader } from "../build/GLTFLoader.js";
+import { DRACOLoader } from "../build/DRACOLoader.js";
 import { SceneManager } from "./scene/SceneManager.js";
 import { CameraManager } from "./scene/CameraManager.js";
 import { LightingManager } from "./scene/LightingManager.js";
