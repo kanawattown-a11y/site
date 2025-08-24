@@ -1,6 +1,6 @@
-import * as THREE from "../build/three.module.js";
-import { GLTFLoader } from "../build/GLTFLoader.js";
-import { DRACOLoader } from "../build/DRACOLoader.js";
+import * as THREE from "./build/three.module.js";
+import { GLTFLoader } from "./build/GLTFLoader.js";
+import { DRACOLoader } from "./build/DRACOLoader.js";
 import { SceneManager } from "./scene/SceneManager.js";
 import { CameraManager } from "./scene/CameraManager.js";
 import { LightingManager } from "./scene/LightingManager.js";
