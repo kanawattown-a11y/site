@@ -183,5 +183,5 @@ export class SceneManager {
 
     getDirectionalLight() {
         return this.directionalLight;
+    }
 }
-
