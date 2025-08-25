@@ -1,4 +1,4 @@
-import * as THREE from "./build/three.module.js";
+import * as THREE from 'https://cdn.jsdelivr.net/npm/three@0.153.0/build/three.module.js';
 import { GLTFLoader } from "./build/GLTFLoader.js";
 import { DRACOLoader } from "./build/DRACOLoader.js";
 import { SceneManager } from "./scene/SceneManager.js";
