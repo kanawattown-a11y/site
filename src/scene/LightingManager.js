@@ -1,3 +1,4 @@
+// src/scene/LightingManager.js
 import * as THREE from 'https://cdn.jsdelivr.net/npm/three@0.153.0/build/three.module.js';
 
 export class LightingManager {
@@ -13,7 +14,7 @@ export class LightingManager {
         this.ambientLight = new THREE.AmbientLight(0xffffff, 0.4);
         this.scene.add(this.ambientLight);
         
-        // Hemisphere light
+        // Hemisphere light (sky / ground)
         const hemisphereLight = new THREE.HemisphereLight(0x87CEEB, 0x362d1d, 0.8);
         this.scene.add(hemisphereLight);
         
@@ -21,16 +22,57 @@ export class LightingManager {
         this.directionalLight = new THREE.DirectionalLight(0xffffff, 1.2);
         this.directionalLight.position.set(50, 100, 50);
         this.directionalLight.castShadow = true;
-        this.directionalLight.shadow.mapSize.setScalar(2048);
-        this.directionalLight.shadow.camera.near = 0.1;
-        this.directionalLight.shadow.camera.far = 500;
-        this.directionalLight.shadow.camera.left = -100;
-        this.directionalLight.shadow.camera.right = 100;
-        this.directionalLight.shadow.camera.top = 100;
-        this.directionalLight.shadow.camera.setFromProjectionMatrix(new THREE.Vector3());
+
+        // Shadow map resolution (use set for clarity)
+        if (this.directionalLight.shadow && this.directionalLight.shadow.mapSize) {
+            try {
+                this.directionalLight.shadow.mapSize.set(2048, 2048);
+            } catch (e) {
+                // fallback: ignore if not supported
+            }
+        }
+
+        // Configure directional light's shadow camera (OrthographicCamera)
+        const cam = this.directionalLight.shadow && this.directionalLight.shadow.camera;
+        if (cam) {
+            // Tune these values according to scene scale
+            const d = 100; // half-size of orthographic shadow camera
+            cam.left = -d;
+            cam.right = d;
+            cam.top = d;
+            cam.bottom = -d;
+
+            cam.near = 0.1;
+            cam.far = 500;
+
+            // Correctly update projection matrix after changing bounds
+            if (typeof cam.updateProjectionMatrix === 'function') {
+                cam.updateProjectionMatrix();
+            } else {
+                console.warn('LightingManager: shadow camera missing updateProjectionMatrix().');
+            }
+
+            // optional: helper for debugging shadows
+            // const helper = new THREE.CameraHelper(cam);
+            // this.scene.add(helper);
+            // this._helper = helper;
+        } else {
+            console.warn('LightingManager: directionalLight.shadow.camera not available on this THREE build.');
+        }
+
+        // Reduce shadow acne with small bias / normalBias
+        if (this.directionalLight.shadow) {
+            // bias can be negative small number; adjust if you see peter-panning
+            this.directionalLight.shadow.bias = -0.0005;
+            // normalBias supported in newer three versions
+            if ('normalBias' in this.directionalLight.shadow) {
+                this.directionalLight.shadow.normalBias = 0.05;
+            }
+        }
+
         this.scene.add(this.directionalLight);
         
-        // Fill lights with colors
+        // Fill lights with colors (accent / warm / cool)
         const fillLight1 = new THREE.PointLight(0xffd700, 0.3, 50);
         fillLight1.position.set(-20, 10, -20);
         this.scene.add(fillLight1);
@@ -45,9 +87,13 @@ export class LightingManager {
     }
 
     updateLighting(env) {
-        this.ambientLight.intensity = env.ambientIntensity;
-        this.directionalLight.intensity = env.directionalIntensity;
-        if (env.directionalLightColor) {
+        if (this.ambientLight && env.ambientIntensity !== undefined) {
+            this.ambientLight.intensity = env.ambientIntensity;
+        }
+        if (this.directionalLight && env.directionalIntensity !== undefined) {
+            this.directionalLight.intensity = env.directionalIntensity;
+        }
+        if (this.directionalLight && env.directionalLightColor !== undefined) {
             this.directionalLight.color.set(env.directionalLightColor);
         }
     }
@@ -59,6 +105,19 @@ export class LightingManager {
     getDirectionalLight() {
         return this.directionalLight;
     }
+
+    dispose() {
+        if (this._helper) {
+            this.scene.remove(this._helper);
+            this._helper = null;
+        }
+        if (this.directionalLight) {
+            this.scene.remove(this.directionalLight);
+            this.directionalLight = null;
+        }
+        if (this.ambientLight) {
+            this.scene.remove(this.ambientLight);
+            this.ambientLight = null;
+        }
+    }
 }
-
-
