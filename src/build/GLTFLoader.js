@@ -1,3 +1,4 @@
+// استيرادات three من CDN (نسخة مثبتة)
 import {
 	AnimationClip,
 	Bone,
@@ -63,9 +64,10 @@ import {
 	VectorKeyframeTrack,
 	SRGBColorSpace,
 	InstancedBufferAttribute
-} from './three.module.js';
-import * as BufferGeometryUtils from 'https://unpkg.com/three/examples/jsm/utils/BufferGeometryUtils.js';
+} from 'https://cdn.jsdelivr.net/npm/three@0.153.0/build/three.module.js';
 
+// نفس رقم الإصدار لملف الأمثلة (BufferGeometryUtils)
+import * as BufferGeometryUtils from 'https://cdn.jsdelivr.net/npm/three@0.153.0/examples/jsm/utils/BufferGeometryUtils.js';
 
 class GLTFLoader extends Loader {
 
