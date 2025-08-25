@@ -67,7 +67,7 @@ import {
 } from 'https://cdn.jsdelivr.net/npm/three@0.153.0/build/three.module.js';
 
 // نفس رقم الإصدار لملف الأمثلة (BufferGeometryUtils)
-import * as BufferGeometryUtils from 'https://cdn.jsdelivr.net/npm/three@0.153.0/examples/jsm/utils/BufferGeometryUtils.js';
+import * as BufferGeometryUtils from './BufferGeometryUtils.js';
 
 class GLTFLoader extends Loader {
 
