@@ -8,9 +8,9 @@ import {
 	WebGLRenderTarget
 } from 'https://cdn.jsdelivr.net/npm/three@0.153.0/build/three.module.js';
 import { Pass, FullScreenQuad } from './Pass.js';
-import { SMAAEdgesShader } from '../shaders/SMAAShader.js';
-import { SMAAWeightsShader } from '../shaders/SMAAShader.js';
-import { SMAABlendShader } from '../shaders/SMAAShader.js';
+import { SMAAEdgesShader } from './SMAAShader.js';
+import { SMAAWeightsShader } from './SMAAShader.js';
+import { SMAABlendShader } from './SMAAShader.js';
 
 class SMAAPass extends Pass {
 
