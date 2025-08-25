@@ -5,7 +5,7 @@ import {
 	WebGLRenderTarget
 } from 'https://cdn.jsdelivr.net/npm/three@0.153.0/build/three.module.js';
 import { CopyShader } from 'https://cdn.jsdelivr.net/npm/three@0.179.1/examples/jsm/shaders/CopyShader.js';
-import { ShaderPass } from 'https://cdn.jsdelivr.net/npm/three@0.179.1/examples/jsm/postprocessing/ShaderPass.js';
+import { ShaderPass } from './ShaderPass.js';
 import { MaskPass } from 'https://cdn.jsdelivr.net/npm/three@0.179.1/examples/jsm/postprocessing/MaskPass.js';
 import { ClearMaskPass } from 'https://cdn.jsdelivr.net/npm/three@0.179.1/examples/jsm/postprocessing/MaskPass.js';
 
