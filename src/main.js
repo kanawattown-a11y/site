@@ -11,8 +11,6 @@ import { PlayerControls } from "./controls/PlayerControls.js";
 const CONFIG = {
     MODEL_URL: 'https://raw.githubusercontent.com/kanawattown-a11y/12/f91219369eb76bb2e445f95abaa61860e3b886dd/naj-v1.glb',
     DRACO_DECODER_PATH: 'https://www.gstatic.com/draco/v1/decoders/',
-    
-    // Physics settings
     MOVE_SPEED: 6.0,
     RUN_MULTIPLIER: 2.0,
     JUMP_FORCE: 12.0,
@@ -20,47 +18,15 @@ const CONFIG = {
     EYE_HEIGHT: 1.8,
     PLAYER_RADIUS: 0.4,
     MOUSE_SENSITIVITY: 1.0,
-    
-    // Performance settings
     SHADOW_MAP_SIZE: 2048,
     MAX_PIXEL_RATIO: 2,
-    
-    // Mobile detection
     IS_MOBILE: /Mobi|Android|iPhone|iPad/i.test(navigator.userAgent),
-    
-    // Environment settings
     ENVIRONMENTS: {
-        showroom: { 
-            background: new THREE.Color(0x2d3748), 
-            fog: new THREE.Color(0x2d3748),
-            ambientIntensity: 0.4,
-            directionalIntensity: 1.2
-        },
-        city: { 
-            background: new THREE.Color(0x87ceeb), 
-            fog: new THREE.Color(0x87ceeb),
-            ambientIntensity: 0.6,
-            directionalIntensity: 1.0
-        },
-        desert: { 
-            background: new THREE.Color(0xffd700), 
-            fog: new THREE.Color(0xffd700),
-            ambientIntensity: 0.8,
-            directionalIntensity: 1.5
-        },
-        night: { 
-            background: new THREE.Color(0x0f172a), 
-            fog: new THREE.Color(0x0f172a),
-            ambientIntensity: 0.2,
-            directionalLightColor: 0x808080,
-            directionalIntensity: 0.8
-        },
-        studio: { 
-            background: new THREE.Color(0xffffff), 
-            fog: new THREE.Color(0xffffff),
-            ambientIntensity: 0.9,
-            directionalIntensity: 0.6
-        }
+        showroom: { background: new THREE.Color(0x2d3748), fog: new THREE.Color(0x2d3748), ambientIntensity: 0.4, directionalIntensity: 1.2 },
+        city: { background: new THREE.Color(0x87ceeb), fog: new THREE.Color(0x87ceeb), ambientIntensity: 0.6, directionalIntensity: 1.0 },
+        desert: { background: new THREE.Color(0xffd700), fog: new THREE.Color(0xffd700), ambientIntensity: 0.8, directionalIntensity: 1.5 },
+        night: { background: new THREE.Color(0x0f172a), fog: new THREE.Color(0x0f172a), ambientIntensity: 0.2, directionalLightColor: 0x808080, directionalIntensity: 0.8 },
+        studio: { background: new THREE.Color(0xffffff), fog: new THREE.Color(0xffffff), ambientIntensity: 0.9, directionalIntensity: 0.6 }
     }
 };
 
@@ -86,9 +52,11 @@ let fps = 60;
 
 // Initialization
 function init() {
+    // Safety: create particles and renderer only after DOM ready (we call init on DOMContentLoaded)
     createParticles();
     setupRenderer();
-    
+
+    // Initialize scene / camera / lighting / physics / controls
     sceneManager = new SceneManager(renderer);
     cameraManager = new CameraManager(renderer);
     lightingManager = new LightingManager(sceneManager.getScene());
@@ -98,60 +66,104 @@ function init() {
     clock = new THREE.Clock();
 
     setupEventListeners();
-    setupSettings();
-    
+    setupSettingsSafely();
+
     loadModel();
     animate();
 }
 
+/**
+ * Create simple DOM particles. If container missing, create fallback and append to body.
+ */
 function createParticles() {
-    const particlesContainer = document.getElementById('particles');
+    let particlesContainer = document.getElementById('particles');
+    if (!particlesContainer) {
+        particlesContainer = document.createElement('div');
+        particlesContainer.id = 'particles';
+        // minimal styles so it doesn't break layout if CSS missing
+        particlesContainer.style.position = 'absolute';
+        particlesContainer.style.top = '0';
+        particlesContainer.style.left = '0';
+        particlesContainer.style.width = '100%';
+        particlesContainer.style.height = '100%';
+        particlesContainer.style.pointerEvents = 'none';
+        document.body.appendChild(particlesContainer);
+        console.warn('particles container not found — created fallback #particles appended to body');
+    }
+
+    // remove existing children to avoid duplicates on hot-reload
+    while (particlesContainer.firstChild) particlesContainer.removeChild(particlesContainer.firstChild);
+
     for (let i = 0; i < 50; i++) {
         const particle = document.createElement('div');
         particle.className = 'particle';
+        particle.style.position = 'absolute';
         particle.style.left = Math.random() * 100 + '%';
+        particle.style.top = Math.random() * 100 + '%';
+        particle.style.pointerEvents = 'none';
         particle.style.animationDelay = Math.random() * 6 + 's';
         particle.style.animationDuration = (Math.random() * 3 + 3) + 's';
         particlesContainer.appendChild(particle);
     }
 }
 
+/**
+ * Setup WebGL renderer and attach to container #app or fallback to body.
+ */
 function setupRenderer() {
-    const container = document.getElementById('app');
-    renderer = new THREE.WebGLRenderer({ 
+    const container = document.getElementById('app') || document.body;
+
+    renderer = new THREE.WebGLRenderer({
         antialias: true,
         powerPreference: "high-performance",
         alpha: true
     });
-    
+
     renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, CONFIG.IS_MOBILE ? 1.5 : CONFIG.MAX_PIXEL_RATIO));
     renderer.setSize(window.innerWidth, window.innerHeight);
-    renderer.outputColorSpace = THREE.SRGBColorSpace;
-    renderer.shadowMap.enabled = true;
-    renderer.shadowMap.type = THREE.PCFSoftShadowMap;
-    renderer.toneMapping = THREE.ACESFilmicToneMapping;
+
+    // Some environments may not have these enums (older three builds) — guard with optional chaining
+    try {
+        renderer.outputColorSpace = THREE.SRGBColorSpace;
+    } catch (err) {
+        // ignore if not supported
+    }
+
+    if (renderer.shadowMap) {
+        renderer.shadowMap.enabled = true;
+        if (THREE.PCFSoftShadowMap !== undefined) renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+    }
+
+    if (THREE.ACESFilmicToneMapping !== undefined) renderer.toneMapping = THREE.ACESFilmicToneMapping;
     renderer.toneMappingExposure = 1.2;
+
     container.appendChild(renderer.domElement);
 }
 
-// Model Loading
+/**
+ * Load GLTF model with DRACO support — all DOM updates guarded.
+ */
 function loadModel() {
     const loadingManager = new THREE.LoadingManager();
-    
+
     loadingManager.onProgress = (url, loaded, total) => {
-        const progress = (loaded / total) * 100;
-        document.getElementById('loadingProgress').style.width = progress + '%';
+        const progress = total ? (loaded / total) * 100 : 0;
+        const progressEl = document.getElementById('loadingProgress');
+        if (progressEl) progressEl.style.width = progress + '%';
     };
-    
+
     loadingManager.onLoad = () => {
-        setTimeout(() => {
-            document.getElementById('loadingScreen').classList.add('hidden');
-        }, 800);
+        const ls = document.getElementById('loadingScreen');
+        if (ls) {
+            setTimeout(() => {
+                ls.classList.add('hidden');
+            }, 800);
+        }
     };
 
     const dracoLoader = new DRACOLoader(loadingManager);
     dracoLoader.setDecoderPath(CONFIG.DRACO_DECODER_PATH);
-    
+
     const gltfLoader = new GLTFLoader(loadingManager);
     gltfLoader.setDRACOLoader(dracoLoader);
 
@@ -159,94 +171,134 @@ function loadModel() {
         CONFIG.MODEL_URL,
         (gltf) => {
             const model = gltf.scene;
-            
+
             model.traverse((child) => {
                 if (child.isMesh) {
                     child.castShadow = true;
                     child.receiveShadow = true;
-                    
+
                     if (child.material) {
                         child.material.side = THREE.FrontSide;
-                        
-                        if (child.material.map) {
-                            child.material.map.anisotropy = renderer.capabilities.getMaxAnisotropy();
+
+                        if (child.material.map && renderer && renderer.capabilities) {
+                            try {
+                                child.material.map.anisotropy = renderer.capabilities.getMaxAnisotropy();
+                            } catch (e) {
+                                // ignore if capability not available
+                            }
                         }
-                        
+
                         if (child.material.isMeshStandardMaterial) {
-                            child.material.metalness = Math.min(child.material.metalness + 0.2, 1.0);
-                            child.material.roughness = Math.max(child.material.roughness - 0.1, 0.0);
+                            child.material.metalness = Math.min((child.material.metalness || 0) + 0.2, 1.0);
+                            child.material.roughness = Math.max((child.material.roughness || 1) - 0.1, 0.0);
                         }
                     }
-                    
-                    sceneManager.addCollisionBox(child);
+
+                    if (sceneManager && typeof sceneManager.addCollisionBox === 'function') {
+                        sceneManager.addCollisionBox(child);
+                    }
                 }
             });
-            
-            model.position.set(0, 0, 0);
-            sceneManager.getScene().add(model);
-            
-            console.log('Model loaded successfully. Collision boxes:', sceneManager.collisionBoxes.length);
+
+            if (sceneManager && sceneManager.getScene) {
+                model.position.set(0, 0, 0);
+                sceneManager.getScene().add(model);
+                console.log('Model loaded successfully. Collision boxes:', sceneManager.collisionBoxes ? sceneManager.collisionBoxes.length : 0);
+            } else {
+                console.warn('SceneManager not ready — model loaded but not added to scene.');
+            }
         },
-        (progress) => {},
+        (progress) => {
+            // optional progress handling
+        },
         (error) => {
             console.error('Error loading model:', error);
-            alert('فشل في تحميل النموذج. يرجى المحاولة مرة أخرى.');
+            try {
+                alert('فشل في تحميل النموذج. يرجى المحاولة مرة أخرى.');
+            } catch (e) { /* ignore if alert blocked */ }
         }
     );
 }
 
 function updatePositionInfo(position) {
+    const posEl = document.getElementById('positionInfo');
+    if (!posEl) return;
     const x = Math.round(position.x * 10) / 10;
     const y = Math.round(position.y * 10) / 10;
     const z = Math.round(position.z * 10) / 10;
-    document.getElementById('positionInfo').textContent = `${x}, ${y}, ${z}`;
+    posEl.textContent = `${x}, ${y}, ${z}`;
 }
 
 function animate() {
     requestAnimationFrame(animate);
-    
+
+    if (!clock) return;
     const deltaTime = clock.getDelta();
-    
-    if (gameState.isPlaying) {
-        const playerObject = playerControls.getControlsObject();
-        playerControls.update(deltaTime, playerObject, CONFIG);
-        physicsEngine.update(deltaTime, playerObject, sceneManager.collisionBoxes);
-        updatePositionInfo(playerObject.position);
+
+    if (gameState.isPlaying && playerControls && typeof playerControls.update === 'function') {
+        const playerObject = playerControls.getControlsObject ? playerControls.getControlsObject() : null;
+        if (playerObject) {
+            playerControls.update(deltaTime, playerObject, CONFIG);
+            if (physicsEngine && typeof physicsEngine.update === 'function') {
+                physicsEngine.update(deltaTime, playerObject, sceneManager ? sceneManager.collisionBoxes : []);
+            }
+            updatePositionInfo(playerObject.position);
+        }
     }
-    
-    sceneManager.animateParticles();
-    
+
+    if (sceneManager && typeof sceneManager.animateParticles === 'function') {
+        sceneManager.animateParticles();
+    }
+
     frameCount++;
     const currentTime = performance.now();
     if (currentTime - lastTime >= 1000) {
         fps = Math.round((frameCount * 1000) / (currentTime - lastTime));
-        document.getElementById('fpsInfo').textContent = fps;
+        const fpsEl = document.getElementById('fpsInfo');
+        if (fpsEl) fpsEl.textContent = fps;
         frameCount = 0;
         lastTime = currentTime;
     }
-    
-    renderer.render(sceneManager.getScene(), cameraManager.getCamera());
+
+    if (renderer && sceneManager && cameraManager) {
+        const scene = sceneManager.getScene ? sceneManager.getScene() : null;
+        const camera = cameraManager && typeof cameraManager.getCamera === 'function' ? cameraManager.getCamera() : null;
+        if (scene && camera) renderer.render(scene, camera);
+    }
 }
 
 function onWindowResize() {
-    cameraManager.getCamera().aspect = window.innerWidth / window.innerHeight;
-    cameraManager.getCamera().updateProjectionMatrix();
+    if (!cameraManager || !cameraManager.getCamera || !renderer) return;
+    const cam = cameraManager.getCamera();
+    cam.aspect = window.innerWidth / window.innerHeight;
+    cam.updateProjectionMatrix();
     renderer.setSize(window.innerWidth, window.innerHeight);
 }
 
 function setupEventListeners() {
     window.addEventListener('resize', onWindowResize);
-    
-    document.getElementById('enterBtn').addEventListener('click', enterExperience);
-    document.getElementById('settingsBtn').addEventListener('click', showSettings);
-    document.getElementById('closeSettings').addEventListener('click', hideSettings);
-    
-    document.querySelectorAll('.env-btn').forEach(btn => {
-        btn.addEventListener('click', () => {
-            sceneManager.changeEnvironment(btn.dataset.env, CONFIG);
-            document.getElementById('currentEnv').textContent = getEnvironmentName(btn.dataset.env);
+
+    const enterBtn = document.getElementById('enterBtn');
+    if (enterBtn) enterBtn.addEventListener('click', enterExperience);
+
+    const settingsBtn = document.getElementById('settingsBtn');
+    if (settingsBtn) settingsBtn.addEventListener('click', showSettings);
+
+    const closeSettings = document.getElementById('closeSettings');
+    if (closeSettings) closeSettings.addEventListener('click', hideSettings);
+
+    const envBtns = document.querySelectorAll('.env-btn');
+    if (envBtns && envBtns.length) {
+        envBtns.forEach(btn => {
+            btn.addEventListener('click', () => {
+                if (sceneManager && typeof sceneManager.changeEnvironment === 'function') {
+                    sceneManager.changeEnvironment(btn.dataset.env, CONFIG);
+                    const currentEnvEl = document.getElementById('currentEnv');
+                    if (currentEnvEl) currentEnvEl.textContent = getEnvironmentName(btn.dataset.env);
+                }
+            });
         });
-    });
+    }
 
     if (CONFIG.IS_MOBILE) {
         setupMobileControls();
@@ -256,7 +308,7 @@ function setupEventListeners() {
 function getEnvironmentName(envName) {
     const names = {
         'showroom': 'معرض',
-        'city': 'مدينة', 
+        'city': 'مدينة',
         'desert': 'صحراء',
         'night': 'ليل',
         'studio': 'استوديو'
@@ -264,51 +316,81 @@ function getEnvironmentName(envName) {
     return names[envName] || 'معرض';
 }
 
-// Mobile Controls
+// Mobile Controls — guarded: only run if helpers/variables exist
 function setupMobileControls() {
-    setupJoystick('moveJoystick', 'moveStick', (x, y) => {
-        mobileInput.move.x = x;
-        mobileInput.move.y = -y; // Invert Y for forward/back
-    });
-    
-    setupJoystick('lookJoystick', 'lookStick', (x, y) => {
-        mobileInput.look.x = -x * 2; // Sensitivity adjustment
-        mobileInput.look.y = -y * 2;
-    });
-    
-    // Mobile buttons
-    document.getElementById('jumpBtn').addEventListener('touchstart', (e) => {
-        e.preventDefault();
-        jump();
-        e.target.classList.add('pressed');
-    });
-    
-    document.getElementById('jumpBtn').addEventListener('touchend', (e) => {
-        e.target.classList.remove('pressed');
-    });
-    
-    document.getElementById('runBtn').addEventListener('touchstart', (e) => {
-        e.preventDefault();
-        keys.run = true;
-        e.target.classList.add('pressed');
-    });
-    
-    document.getElementById('runBtn').addEventListener('touchend', (e) => {
-        keys.run = false;
-        e.target.classList.remove('pressed');
-    });
-    
-    document.getElementById('menuBtn').addEventListener('click', () => {
-        gameState.isPlaying = false;
-        document.getElementById('welcomeScreen').classList.remove('hidden');
-        document.getElementById('mobileControls').classList.remove('show');
-        document.getElementById('controlsInfo').classList.remove('show');
-        document.getElementById('envControls').style.display = 'none';
-        document.getElementById('statusBar').classList.remove('show');
-    });
+    if (typeof setupJoystick === 'function' && typeof mobileInput !== 'undefined') {
+        setupJoystick('moveJoystick', 'moveStick', (x, y) => {
+            mobileInput.move.x = x;
+            mobileInput.move.y = -y;
+        });
+
+        setupJoystick('lookJoystick', 'lookStick', (x, y) => {
+            mobileInput.look.x = -x * 2;
+            mobileInput.look.y = -y * 2;
+        });
+    } else {
+        console.warn('Mobile joystick setup skipped: setupJoystick or mobileInput not available.');
+    }
+
+    const jumpBtn = document.getElementById('jumpBtn');
+    if (jumpBtn) {
+        jumpBtn.addEventListener('touchstart', (e) => {
+            e.preventDefault();
+            if (typeof jump === 'function') jump();
+            e.target.classList.add('pressed');
+        });
+        jumpBtn.addEventListener('touchend', (e) => {
+            e.target.classList.remove('pressed');
+        });
+    }
+
+    const runBtn = document.getElementById('runBtn');
+    if (runBtn) {
+        runBtn.addEventListener('touchstart', (e) => {
+            e.preventDefault();
+            if (typeof keys !== 'undefined') keys.run = true;
+            e.target.classList.add('pressed');
+        });
+        runBtn.addEventListener('touchend', (e) => {
+            if (typeof keys !== 'undefined') keys.run = false;
+            e.target.classList.remove('pressed');
+        });
+    }
+
+    const menuBtn = document.getElementById('menuBtn');
+    if (menuBtn) {
+        menuBtn.addEventListener('click', () => {
+            gameState.isPlaying = false;
+            const welcome = document.getElementById('welcomeScreen');
+            if (welcome) welcome.classList.remove('hidden');
+            const mobileControlsEl = document.getElementById('mobileControls');
+            if (mobileControlsEl) mobileControlsEl.classList.remove('show');
+            const controlsInfo = document.getElementById('controlsInfo');
+            if (controlsInfo) controlsInfo.classList.remove('show');
+            const envControls = document.getElementById('envControls');
+            if (envControls) envControls.style && (envControls.style.display = 'none');
+            const statusBar = document.getElementById('statusBar');
+            if (statusBar) statusBar.classList.remove('show');
+        });
+    }
 }
 
-// Start Application
-init();
+// Safe placeholder for settings setup in case original function missing
+function setupSettingsSafely() {
+    if (typeof setupSettings === 'function') {
+        setupSettings();
+    } else {
+        // minimal fallback: apply saved mouse sensitivity if any
+        const savedMs = (gameState.settings && gameState.settings.mouseSensitivity) || CONFIG.MOUSE_SENSITIVITY;
+        gameState.settings.mouseSensitivity = savedMs;
+    }
+}
 
-
+// Ensure init runs after DOM content is ready
+window.addEventListener('DOMContentLoaded', () => {
+    try {
+        init();
+    } catch (err) {
+        console.error('Initialization error:', err);
+    }
+});
