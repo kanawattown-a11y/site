@@ -3,7 +3,6 @@ import {
 	Bone,
 	Box3,
 	BufferAttribute,
-	BufferGeometry,
 	ClampToEdgeWrapping,
 	Color,
 	ColorManagement,
@@ -65,7 +64,7 @@ import {
 	SRGBColorSpace,
 	InstancedBufferAttribute
 } from './three.module.js';
-import { toTrianglesDrawMode } from './utils/BufferGeometryUtils.js';
+import * as BufferGeometryUtils from 'https://unpkg.com/three/examples/jsm/utils/BufferGeometryUtils.js';
 
 
 class GLTFLoader extends Loader {
