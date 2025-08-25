@@ -1,4 +1,4 @@
-import * as THREE from 'three';
+import * as THREE from 'https://cdn.jsdelivr.net/npm/three@0.153.0/build/three.module.js';
 import { PointerLockControls } from 'three/examples/jsm/controls/PointerLockControls.js';
 
 export class PlayerControls {
