@@ -19,7 +19,7 @@ export class LightingManager {
         this.scene.add(hemisphereLight);
         
         // Main directional light (sun)
-        this.directionalLight = new THREE.DirectionalLight(0xffffff, 1.2);
+        this.directionalLight = new THREE.DirectionalLight(0xffffff, 0.8);
         this.directionalLight.position.set(50, 100, 50);
         this.directionalLight.castShadow = true;
 
